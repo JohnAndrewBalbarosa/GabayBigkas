@@ -1,0 +1,9 @@
+[
+  {"id":"rtc","name":"Voice / Video / Streaming","description":"Calls, screen sharing, live broadcast, at channel management.","spec":"/openapi/rtc/channel-management.en.yaml","docs":"rtc","github":"https://github.com/AgoraIO/API-Examples-Web","auth":"basic"},
+  {"id":"ai","name":"Conversational AI","description":"Voice AI agent lifecycle, instructions, history, at speech.","spec":"/openapi/conversational-ai/rest-api.en.yaml","docs":"conversational-ai","github":"https://github.com/AgoraIO-Conversational-AI/agent-quickstart-nextjs","auth":"convo"},
+  {"id":"stt","name":"Speech-to-Text","description":"Live transcription at translation ng RTC audio.","spec":"/openapi/speech-to-text/v7.en.yaml","docs":"speech-to-text","auth":"basic"},
+  {"id":"recording","name":"Cloud Recording","description":"I-record ang session sa configured cloud storage.","spec":"/openapi/cloud-recording/cloud-recording.en.yaml","docs":"cloud-recording","auth":"basic"},
+  {"id":"transcoding","name":"Cloud Transcoding","description":"Pagsamahin at i-convert ang media streams.","spec":"/openapi/cloud-transcoding/cloud-transcoding.en.yaml","docs":"cloud-transcoding","auth":"basic"},
+  {"id":"gateway","name":"Media Gateway","description":"Ikonekta ang external media streams sa Agora.","spec":"/openapi/media-gateway/media-gateway.en.yaml","docs":"rtmp-gateway","auth":"basic"},
+  {"id":"signaling","name":"Signaling","description":"Messages at events para sa synchronized app state.","spec":"/openapi/rtm/signaling-rest.en.yaml","docs":"signaling","github":"https://github.com/AgoraIO/signaling-sdk-samples-web","auth":"basic"}
+]

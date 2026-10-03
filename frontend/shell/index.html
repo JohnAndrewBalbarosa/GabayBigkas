@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>GabayBigkas</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header><h1>GabayBigkas</h1><p>Reviewable na ebidensiya para sa English practice</p></header>
+  <nav>
+    <button data-view="learner">Learner</button>
+    <button data-view="annotator">Annotator</button>
+    <a href="http://127.0.0.1:4317" target="_blank" rel="noreferrer">Agora Lab</a>
+  </nav>
+  <main>
+    <section id="login">
+      <h2>Local account</h2>
+      <form><input name="email" type="email" placeholder="Email" required><input name="password" type="password" placeholder="Password" required><button>Mag-sign in</button></form>
+    </section>
+    <section id="learner" hidden>
+      <h2>Guided learner session</h2>
+      <p id="learner-status">Handa.</p>
+      <label><input id="adult-consent" type="checkbox"> Kinukumpirma kong ako ay adult at pumapayag akong gamitin ang recording para sa MVP analysis.</label>
+      <button id="start-session">Simulan ang consented session</button>
+      <button id="finish-session" disabled>Tapusin at iproseso</button>
+    </section>
+    <section id="annotator" hidden>
+      <h2>Manual Colab inference</h2>
+      <p>Mag-download ng bounded bundle, iproseso ito interactively sa approved Colab notebook, saka i-import ang result JSON.</p>
+      <div id="inference-jobs"></div>
+      <input id="inference-result" type="file" accept="application/json,.json">
+      <button id="import-inference-result">I-import ang result JSON</button>
+      <p id="inference-status"></p>
+      <h2>Mga kailangang i-review</h2><div id="annotation-queue"></div>
+    </section>
+  </main>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

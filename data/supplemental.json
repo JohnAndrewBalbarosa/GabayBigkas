@@ -1,0 +1,4640 @@
+[
+  {
+    "id": "pull",
+    "name": "Media Pull",
+    "description": "Kumuha ng external stream papasok sa RTC.",
+    "auth": "basic",
+    "docs": "https://docs.agora.io/en/api-reference/api-ref/media-pull",
+    "operations": [
+      {
+        "id": "pull.1",
+        "label": "POST /{region}/v1/projects/{appid}/cloud-player/players",
+        "method": "POST",
+        "server": "https://api.agora.io",
+        "path": "/{region}/v1/projects/{appid}/cloud-player/players",
+        "parameters": [
+          {
+            "name": "region",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "pull.2",
+        "label": "DELETE /{region}/v1/projects/{appid}/cloud-player/players/{id}",
+        "method": "DELETE",
+        "server": "https://api.agora.io",
+        "path": "/{region}/v1/projects/{appid}/cloud-player/players/{id}",
+        "parameters": [
+          {
+            "name": "region",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "pull.3",
+        "label": "GET /v1/projects/{appid}/cloud-player/players",
+        "method": "GET",
+        "server": "https://api.agora.io",
+        "path": "/v1/projects/{appid}/cloud-player/players",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "pull.4",
+        "label": "PATCH /{region}/v1/projects/{appid}/cloud-player/players/{id}",
+        "method": "PATCH",
+        "server": "https://api.agora.io",
+        "path": "/{region}/v1/projects/{appid}/cloud-player/players/{id}",
+        "parameters": [
+          {
+            "name": "region",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "pull.5",
+        "label": "PATCH /{region}/v1/projects/{appid}/cloud-player/{playerid}",
+        "method": "PATCH",
+        "server": "https://api.agora.io",
+        "path": "/{region}/v1/projects/{appid}/cloud-player/{playerid}",
+        "parameters": [
+          {
+            "name": "region",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "playerid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      }
+    ],
+    "provenance": {
+      "url": "https://docs.agora.io/en/api-reference/api-ref/media-pull.md",
+      "sha256": "fc18fdaa1e0aa815511fdc8a93cdd5129666bab34af4b7d25471eb2c07a17521",
+      "retrieved": "2026-10-01T20:50:30.533Z"
+    },
+    "note": "Endpoint reference lang: JSON syntax at route parameters ang locally validated; sundin ang official docs para sa payload at business rules."
+  },
+  {
+    "id": "push",
+    "name": "Media Push",
+    "description": "I-push ang RTC output papunta sa CDN.",
+    "auth": "basic",
+    "docs": "https://docs.agora.io/en/api-reference/api-ref/media-push",
+    "operations": [
+      {
+        "id": "push.1",
+        "label": "POST /{region}/v1/projects/{appid}/rtmp-converters",
+        "method": "POST",
+        "server": "https://api.agora.io",
+        "path": "/{region}/v1/projects/{appid}/rtmp-converters",
+        "parameters": [
+          {
+            "name": "region",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "push.2",
+        "label": "DELETE /{region}/v1/projects/{appid}/rtmp-converters/{converterId}",
+        "method": "DELETE",
+        "server": "https://api.agora.io",
+        "path": "/{region}/v1/projects/{appid}/rtmp-converters/{converterId}",
+        "parameters": [
+          {
+            "name": "region",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "converterId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "push.3",
+        "label": "PATCH /{region}/v1/projects/{appid}/rtmp-converters/{converterId}",
+        "method": "PATCH",
+        "server": "https://api.agora.io",
+        "path": "/{region}/v1/projects/{appid}/rtmp-converters/{converterId}",
+        "parameters": [
+          {
+            "name": "region",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "converterId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "push.4",
+        "label": "GET /{region}/v1/projects/{appid}/rtmp-converters/{converterId}",
+        "method": "GET",
+        "server": "https://api.agora.io",
+        "path": "/{region}/v1/projects/{appid}/rtmp-converters/{converterId}",
+        "parameters": [
+          {
+            "name": "region",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "converterId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "validation": "partial"
+      }
+    ],
+    "provenance": {
+      "url": "https://docs.agora.io/en/api-reference/api-ref/media-push.md",
+      "sha256": "f992c2d515282172f54ee4ccfa4aa8c8a975b46fe0b61c6af25904a5471028b9",
+      "retrieved": "2026-10-01T20:50:32.279Z"
+    },
+    "note": "Endpoint reference lang: JSON syntax at route parameters ang locally validated; sundin ang official docs para sa payload at business rules."
+  },
+  {
+    "id": "chat",
+    "name": "Chat",
+    "description": "Persistent messaging, users, groups, at presence.",
+    "auth": "chat",
+    "docs": "https://docs.agora.io/en/api-reference/api-ref/im",
+    "operations": [
+      {
+        "id": "chat.1",
+        "label": "POST /app-id/{appid}/users",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.2",
+        "label": "GET /app-id/{appid}/users/{username}",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users/{username}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.3",
+        "label": "GET /app-id/{appid}/users",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.4",
+        "label": "DELETE /app-id/{appid}/users/{username}",
+        "method": "DELETE",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users/{username}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.5",
+        "label": "DELETE /app-id/{appid}/users",
+        "method": "DELETE",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.6",
+        "label": "POST /app-id/{appid}/users/{username}/deactivate",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users/{username}/deactivate",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.7",
+        "label": "POST /app-id/{appid}/users/{username}/activate",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users/{username}/activate",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.8",
+        "label": "POST /app-id/{appid}/users/{username}/disconnect",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users/{username}/disconnect",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.9",
+        "label": "GET /app-id/{appid}/users/{username}/status",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users/{username}/status",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.10",
+        "label": "POST /app-id/{appid}/users/batch/status",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users/batch/status",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.11",
+        "label": "GET /app-id/{appid}/users/{owner_username}/offline_msg_count",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users/{owner_username}/offline_msg_count",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner_username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.12",
+        "label": "GET /app-id/{appid}/users/{username}/offline_msg_status/{msg_id}",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users/{username}/offline_msg_status/{msg_id}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "msg_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.13",
+        "label": "PUT /app-id/{appid}/users/{username}",
+        "method": "PUT",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users/{username}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.14",
+        "label": "POST /app-id/{appid}/push/single",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/push/single",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.15",
+        "label": "POST /app-id/{appid}/push/list/label",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/push/list/label",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.16",
+        "label": "POST /app-id/{appid}/push/task",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/push/task",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.17",
+        "label": "POST /app-id/{appid}/push/label",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/push/label",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.18",
+        "label": "GET /app-id/{appid}/push/label/{labelname}",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/push/label/{labelname}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "labelname",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.19",
+        "label": "GET /app-id/{appid}/push/label",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/push/label",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.20",
+        "label": "DELETE /app-id/{appid}/push/label/{labelname}",
+        "method": "DELETE",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/push/label/{labelname}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "labelname",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.21",
+        "label": "POST /app-id/{appid}/push/label/{labelname}/user",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/push/label/{labelname}/user",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "labelname",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.22",
+        "label": "GET /app-id/{appid}/push/label/{labelname}/user/{member}",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/push/label/{labelname}/user/{member}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "labelname",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "member",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.23",
+        "label": "GET /app-id/{appid}/push/label/{labelname}/user",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/push/label/{labelname}/user",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "labelname",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.24",
+        "label": "DELETE /app-id/{appid}/push/label/{labelname}/user",
+        "method": "DELETE",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/push/label/{labelname}/user",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "labelname",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.25",
+        "label": "POST /app-id/{appid}/messages",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/messages",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.26",
+        "label": "POST /app-id/{appid}/chatfiles",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatfiles",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.27",
+        "label": "POST /app-id/{appid}/chatfiles/{file_uuid}",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatfiles/{file_uuid}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "file_uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.28",
+        "label": "GET /app-id/{appid}/chatmessages/${time}",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatmessages/${time}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "time",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.29",
+        "label": "PUT /app-id/{appid}/messages/rewrite/{msg_id}",
+        "method": "PUT",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/messages/rewrite/{msg_id}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "msg_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.30",
+        "label": "POST /app-id/{appid}/messages/recall",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/messages/recall",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.31",
+        "label": "DELETE /app-id/{appid}/users/{userName}/user_channel",
+        "method": "DELETE",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users/{userName}/user_channel",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.32",
+        "label": "PUT /app-id/{appid}/metadata/user/{username}",
+        "method": "PUT",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/metadata/user/{username}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.33",
+        "label": "GET /app-id/{appid}/metadata/user/{username}",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/metadata/user/{username}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.34",
+        "label": "POST /app-id/{appid}/metadata/user/get",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/metadata/user/get",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.35",
+        "label": "DELETE /app-id/{appid}/metadata/user/{username}",
+        "method": "DELETE",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/metadata/user/{username}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.36",
+        "label": "GET /app-id/{appid}/metadata/user/capacity",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/metadata/user/capacity",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.37",
+        "label": "POST /app-id/{appid}/users/{owner_username}/contacts/users/{friend_username}",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users/{owner_username}/contacts/users/{friend_username}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner_username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "friend_username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.38",
+        "label": "DELETE /app-id/{appid}/users/{owner_username}/contacts/users/{friend_username}",
+        "method": "DELETE",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users/{owner_username}/contacts/users/{friend_username}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner_username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "friend_username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.39",
+        "label": "GET /app-id/{appid}/users/{owner_username}/contacts/users",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users/{owner_username}/contacts/users",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner_username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.40",
+        "label": "GET /app-id/{appid}/users/{owner_username}/blocks/users",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users/{owner_username}/blocks/users",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner_username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.41",
+        "label": "POST /app-id/{appid}/users/{owner_username}/blocks/users",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users/{owner_username}/blocks/users",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner_username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.42",
+        "label": "DELETE /app-id/{appid}/users/{owner_username}/blocks/users/{blocked_username}",
+        "method": "DELETE",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users/{owner_username}/blocks/users/{blocked_username}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner_username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "blocked_username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.43",
+        "label": "GET /app-id/{appid}/chatgroups?limit={N}&cursor={cursor}",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatgroups?limit={N}&cursor={cursor}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "N",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.44",
+        "label": "GET /app-id/{appid}/users/{username}/joined_chatgroups",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users/{username}/joined_chatgroups",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.45",
+        "label": "GET /app-id/{appid}/chatgroups/{group_ids}",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatgroups/{group_ids}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "group_ids",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.46",
+        "label": "POST /app-id/{appid}/chatgroups",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatgroups",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.47",
+        "label": "POST /app-id/{appid}/chatgroups/{group_id}/disable",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatgroups/{group_id}/disable",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.48",
+        "label": "POST /app-id/{appid}/chatgroups/{group_id}/enable",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatgroups/{group_id}/enable",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.49",
+        "label": "PUT /app-id/{appid}/chatgroups/{group_id}",
+        "method": "PUT",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatgroups/{group_id}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.50",
+        "label": "DELETE /app-id/{appid}/chatgroups/{group_id}",
+        "method": "DELETE",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatgroups/{group_id}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.51",
+        "label": "GET /app-id/{appid}/chatgroups/{group_id}/users",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatgroups/{group_id}/users",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.52",
+        "label": "POST /app-id/{appid}/chatgroups/{group_id}/users/{username}",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatgroups/{group_id}/users/{username}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.53",
+        "label": "POST /app-id/{appid}/chatgroups/{chatgroupid}/users",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatgroups/{chatgroupid}/users",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chatgroupid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.54",
+        "label": "DELETE /app-id/{appid}/chatgroups/{group_id}/users/{username}",
+        "method": "DELETE",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatgroups/{group_id}/users/{username}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.55",
+        "label": "DELETE /app-id/{appid}/chatgroups/{group_id}/users/{usernames}",
+        "method": "DELETE",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatgroups/{group_id}/users/{usernames}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "usernames",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.56",
+        "label": "GET /app-id/{appid}/chatgroups/{group_id}/admin",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatgroups/{group_id}/admin",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.57",
+        "label": "POST /app-id/{appid}/chatgroups/{group_id}/admin",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatgroups/{group_id}/admin",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.58",
+        "label": "DELETE /app-id/{appid}/chatgroups/{group_id}/admin/{oldadmin}",
+        "method": "DELETE",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatgroups/{group_id}/admin/{oldadmin}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "oldadmin",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.59",
+        "label": "PUT /app-id/{appid}/chatgroups/{groupid}",
+        "method": "PUT",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatgroups/{groupid}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "groupid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.60",
+        "label": "GET /app-id/{appid}/chatrooms?limit={N}&cursor={cursor}",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatrooms?limit={N}&cursor={cursor}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "N",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.61",
+        "label": "GET /app-id/{appid}/users/{username}/joined_chatrooms",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users/{username}/joined_chatrooms",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.62",
+        "label": "GET /app-id/{appid}/chatrooms/{chatroom_id}",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatrooms/{chatroom_id}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chatroom_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.63",
+        "label": "POST /app-id/{appid}/chatrooms",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatrooms",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.64",
+        "label": "PUT /app-id/{appid}/chatrooms/{chatroom_id}",
+        "method": "PUT",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatrooms/{chatroom_id}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chatroom_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.65",
+        "label": "DELETE /app-id/{appid}/chatrooms/{chatroom_id}",
+        "method": "DELETE",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatrooms/{chatroom_id}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chatroom_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.66",
+        "label": "PUT /app-id/{appid}/metadata/chatroom/{chatroom_id}/user/{username}",
+        "method": "PUT",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/metadata/chatroom/{chatroom_id}/user/{username}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chatroom_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.67",
+        "label": "POST /app-id/{appid}/metadata/chatroom/{chatroom_id}",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/metadata/chatroom/{chatroom_id}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chatroom_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.68",
+        "label": "PUT /app-id/{appid}/metadata/chatroom/{chatroom_id}/user/{username}/forced",
+        "method": "PUT",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/metadata/chatroom/{chatroom_id}/user/{username}/forced",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chatroom_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.69",
+        "label": "DELETE /app-id/{appid}/metadata/chatroom/{chatroom_id}/user/{username}",
+        "method": "DELETE",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/metadata/chatroom/{chatroom_id}/user/{username}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chatroom_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.70",
+        "label": "DELETE /app-id/{appid}/metadata/chatroom/{chatroom_id}/user/{username}/forced",
+        "method": "DELETE",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/metadata/chatroom/{chatroom_id}/user/{username}/forced",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chatroom_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.71",
+        "label": "GET /app-id/{appid}/chatrooms/{chatroom_id}/users",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatrooms/{chatroom_id}/users",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chatroom_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.72",
+        "label": "POST /app-id/{appid}/chatrooms/{chatroomid}/users/{username}",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatrooms/{chatroomid}/users/{username}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chatroomid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.73",
+        "label": "POST /app-id/{appid}/chatrooms/{chatroomid}/users",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatrooms/{chatroomid}/users",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chatroomid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.74",
+        "label": "DELETE /app-id/{appid}/chatrooms/{chatroomid}/users/{username}",
+        "method": "DELETE",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatrooms/{chatroomid}/users/{username}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chatroomid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.75",
+        "label": "DELETE /app-id/{appid}/chatrooms/{chatroomid}/users/{usernames}",
+        "method": "DELETE",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatrooms/{chatroomid}/users/{usernames}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chatroomid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "usernames",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.76",
+        "label": "GET /app-id/{appid}/chatrooms/{chatroom_id}/admin",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatrooms/{chatroom_id}/admin",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chatroom_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.77",
+        "label": "POST /app-id/{appid}/chatrooms/{chatroom_id}/admin",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatrooms/{chatroom_id}/admin",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chatroom_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.78",
+        "label": "DELETE /app-id/{appid}/chatrooms/{chatroom_id}/admin/{oldadmin}",
+        "method": "DELETE",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/chatrooms/{chatroom_id}/admin/{oldadmin}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "chatroom_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "oldadmin",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.79",
+        "label": "POST /app-id/{appid}/mutes",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/mutes",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.80",
+        "label": "GET /app-id/{appid}/mutes/username",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/mutes/username",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.81",
+        "label": "GET /app-id/{appid}/mutes",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/mutes",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.82",
+        "label": "POST /app-id/{appid}/users/{username}/presence/{resource}/{status}",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users/{username}/presence/{resource}/{status}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "resource",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.83",
+        "label": "POST /app-id/{appid}/users/{username}/presence/{expiry}",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users/{username}/presence/{expiry}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expiry",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.84",
+        "label": "POST /app-id/{appid}/users/{username}/presence",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users/{username}/presence",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.85",
+        "label": "DELETE /app-id/{appid}/users/{username}/presence",
+        "method": "DELETE",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users/{username}/presence",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.86",
+        "label": "GET /app-id/{appid}/users/{username}/presence/sublist?pageNum=1&pageSize=100",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/users/{username}/presence/sublist?pageNum=1&pageSize=100",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.87",
+        "label": "POST /app-id/{appid}/reaction/user/{userId}",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/reaction/user/{userId}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.88",
+        "label": "GET /app-id/{appid}/reaction/user/{userId}",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/reaction/user/{userId}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.89",
+        "label": "DELETE /app-id/{appid}/reaction/user/{userId}",
+        "method": "DELETE",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/reaction/user/{userId}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.90",
+        "label": "GET /app-id/{appid}/reaction/user/{userId}/detail",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/reaction/user/{userId}/detail",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.91",
+        "label": "POST /app-id/{appid}/thread",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/thread",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.92",
+        "label": "PUT /app-id/{appid}/thread/{thread_id}",
+        "method": "PUT",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/thread/{thread_id}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "thread_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.93",
+        "label": "DELETE /app-id/{appid}/thread/{thread_id}",
+        "method": "DELETE",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/thread/{thread_id}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "thread_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.94",
+        "label": "GET /app-id/{appid}/thread?limit={limit}&cursor={cursor}&sort={sort}",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/thread?limit={limit}&cursor={cursor}&sort={sort}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.95",
+        "label": "GET /app-id/{appid}/threads/user/{username}?limit={limit}&cursor={cursor}&sort={sort}",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/threads/user/{username}?limit={limit}&cursor={cursor}&sort={sort}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.96",
+        "label": "GET /app-id/{appid}/threads/chatgroups/{group_id}/user/{username}?limit={limit}&cursor={cursor}&sort={sort}",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/threads/chatgroups/{group_id}/user/{username}?limit={limit}&cursor={cursor}&sort={sort}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "group_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "username",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.97",
+        "label": "GET /app-id/{appid}/thread/{thread_id}/users?limit={N}&cursor={cursor}",
+        "method": "GET",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/thread/{thread_id}/users?limit={N}&cursor={cursor}",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "thread_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "N",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "chat.98",
+        "label": "POST /app-id/{appid}/thread/{thread_id}/users",
+        "method": "POST",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/thread/{thread_id}/users",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "thread_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "chat.99",
+        "label": "DELETE /app-id/{appid}/threads/{thread_id}/users",
+        "method": "DELETE",
+        "server": "https://CHAT_HOST",
+        "path": "/app-id/{appid}/threads/{thread_id}/users",
+        "parameters": [
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "thread_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "chat": []
+          }
+        ],
+        "validation": "partial"
+      }
+    ],
+    "provenance": {
+      "url": "https://docs.agora.io/en/api-reference/api-ref/im.md",
+      "sha256": "e9766cb626b632d86232336203f13badad142dd33d26b73b8a210b91bfc7661f",
+      "retrieved": "2026-10-01T20:50:34.539Z"
+    },
+    "note": "Endpoint reference lang: JSON syntax at route parameters ang locally validated; sundin ang official docs para sa payload at business rules.",
+    "github": "https://github.com/AgoraIO-Usecase/AgoraChat-UIKit-web"
+  },
+  {
+    "id": "whiteboard",
+    "name": "Interactive Whiteboard",
+    "description": "Shared rooms para sa drawing at collaboration.",
+    "auth": "whiteboard",
+    "docs": "https://docs.agora.io/en/api-reference/api-ref/whiteboard/room-management",
+    "operations": [
+      {
+        "id": "whiteboard.1",
+        "label": "POST /v5/rooms",
+        "method": "POST",
+        "server": "https://api.netless.link",
+        "path": "/v5/rooms",
+        "parameters": [],
+        "bodyRequired": true,
+        "security": [
+          {
+            "whiteboard": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "whiteboard.2",
+        "label": "GET /v5/rooms",
+        "method": "GET",
+        "server": "https://api.netless.link",
+        "path": "/v5/rooms",
+        "parameters": [],
+        "bodyRequired": false,
+        "security": [
+          {
+            "whiteboard": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "whiteboard.3",
+        "label": "GET /v5/rooms/{uuid}",
+        "method": "GET",
+        "server": "https://api.netless.link",
+        "path": "/v5/rooms/{uuid}",
+        "parameters": [
+          {
+            "name": "uuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "whiteboard": []
+          }
+        ],
+        "validation": "partial"
+      }
+    ],
+    "provenance": {
+      "url": "https://docs.agora.io/en/api-reference/api-ref/whiteboard/room-management.md",
+      "sha256": "56542451fc5b5fc21e2cb21338e7fe844827d1765bf45d3e1948470a0b3958e4",
+      "retrieved": "2026-10-01T20:50:36.635Z"
+    },
+    "note": "Endpoint reference lang: JSON syntax at route parameters ang locally validated; sundin ang official docs para sa payload at business rules.",
+    "github": "https://github.com/netless-io/fastboard"
+  },
+  {
+    "id": "analytics",
+    "name": "Analytics",
+    "description": "Call quality, session diagnostics, at usage reports.",
+    "auth": "basic",
+    "docs": "https://docs.agora.io/en/api-reference/api-ref/agora-analytics/analytics-rest-api",
+    "operations": [
+      {
+        "id": "analytics.1",
+        "label": "GET /beta/analytics/call/lists",
+        "method": "GET",
+        "server": "https://api.agora.io",
+        "path": "/beta/analytics/call/lists",
+        "parameters": [
+          {
+            "name": "start_ts",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "end_ts",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page_no",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "analytics.2",
+        "label": "GET /beta/analytics/call/sessions",
+        "method": "GET",
+        "server": "https://api.agora.io",
+        "path": "/beta/analytics/call/sessions",
+        "parameters": [
+          {
+            "name": "start_ts",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "end_ts",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "call_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page_no",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "uids",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "analytics.3",
+        "label": "GET /beta/analytics/call/metrics",
+        "method": "GET",
+        "server": "https://api.agora.io",
+        "path": "/beta/analytics/call/metrics",
+        "parameters": [
+          {
+            "name": "start_ts",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "end_ts",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "call_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sids",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "analytics.4",
+        "label": "GET /beta/insight/usage/by_time",
+        "method": "GET",
+        "server": "https://api.agora.io",
+        "path": "/beta/insight/usage/by_time",
+        "parameters": [
+          {
+            "name": "startTs",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endTs",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "metric",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "aggregateGranularity",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "analytics.5",
+        "label": "GET /beta/insight/quality/by_time",
+        "method": "GET",
+        "server": "https://api.agora.io",
+        "path": "/beta/insight/quality/by_time",
+        "parameters": [
+          {
+            "name": "startTs",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endTs",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "metric",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "aggregateGranularity",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "analytics.6",
+        "label": "GET /beta/realtime/usage/by_time_20sec",
+        "method": "GET",
+        "server": "https://api.agora.io",
+        "path": "/beta/realtime/usage/by_time_20sec",
+        "parameters": [
+          {
+            "name": "startTs",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endTs",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "metric",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dimension",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dimensionValues",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "analytics.7",
+        "label": "GET /beta/realtime/quality/by_time_20sec",
+        "method": "GET",
+        "server": "https://api.agora.io",
+        "path": "/beta/realtime/quality/by_time_20sec",
+        "parameters": [
+          {
+            "name": "startTs",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endTs",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "metric",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dimension",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dimensionValues",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "analytics.8",
+        "label": "GET /beta/realtime/usage/dimension/top20",
+        "method": "GET",
+        "server": "https://api.agora.io",
+        "path": "/beta/realtime/usage/dimension/top20",
+        "parameters": [
+          {
+            "name": "ts",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "metric",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dimension",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "validation": "partial"
+      },
+      {
+        "id": "analytics.9",
+        "label": "GET /beta/realtime/quality/dimension/top20",
+        "method": "GET",
+        "server": "https://api.agora.io",
+        "path": "/beta/realtime/quality/dimension/top20",
+        "parameters": [
+          {
+            "name": "ts",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appid",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "productType",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "metric",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dimension",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "extraMetrics",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "basic": []
+          }
+        ],
+        "validation": "partial"
+      }
+    ],
+    "provenance": {
+      "url": "https://docs.agora.io/en/api-reference/api-ref/agora-analytics/analytics-rest-api.md",
+      "sha256": "8b55d97fcfc32e5e0239f5bd61344edf6922ce07a858139c10947f216942eea1",
+      "retrieved": "2026-10-01T20:50:38.685Z"
+    },
+    "note": "Endpoint reference lang: JSON syntax at route parameters ang locally validated; sundin ang official docs para sa payload at business rules."
+  },
+  {
+    "id": "classroom",
+    "name": "Flexible Classroom",
+    "description": "Classroom orchestration para sa education apps.",
+    "auth": "education",
+    "docs": "https://docs.agora.io/en/api-reference/api-ref/flexible-classroom/classroom-rest-api",
+    "operations": [
+      {
+        "id": "classroom.1",
+        "label": "POST /{region}/edu/apps/{appid}/v2/rooms/{roomUuid}",
+        "method": "POST",
+        "server": "https://api.agora.io",
+        "path": "/{region}/edu/apps/{appid}/v2/rooms/{roomUuid}",
+        "parameters": [
+          {
+            "name": "region",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "roomUuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": true,
+        "security": [
+          {
+            "education": []
+          }
+        ],
+        "validation": "partial",
+        "bodySchema": {
+          "type": "object",
+          "minProperties": 1
+        }
+      },
+      {
+        "id": "classroom.2",
+        "label": "GET /{region}/edu/apps/{appid}/v2/rooms/{roomUuid}",
+        "method": "GET",
+        "server": "https://api.agora.io",
+        "path": "/{region}/edu/apps/{appid}/v2/rooms/{roomUuid}",
+        "parameters": [
+          {
+            "name": "region",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "appid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "roomUuid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "bodyRequired": false,
+        "security": [
+          {
+            "education": []
+          }
+        ],
+        "validation": "partial"
+      }
+    ],
+    "provenance": {
+      "url": "https://docs.agora.io/en/api-reference/api-ref/flexible-classroom/classroom-rest-api.md",
+      "sha256": "054717710a20f4095297d1b2792e90e447c80cc027f51806cda5650aea73b13b",
+      "retrieved": "2026-10-01T20:50:40.554Z"
+    },
+    "note": "Endpoint reference lang: JSON syntax at route parameters ang locally validated; sundin ang official docs para sa payload at business rules."
+  },
+  {
+    "id": "extensions",
+    "name": "Extensions Marketplace",
+    "description": "Vendor provisioning, usage, at billing callbacks. Provider-side contracts ito; kailangan ng partner integration.",
+    "docs": "https://docs.agora.io/en/api-reference/api-ref/extensions-marketplace/provisioning",
+    "github": "",
+    "auth": "specialized",
+    "operations": [],
+    "note": "May setup guide; walang executable adapter sa browser lab na ito."
+  },
+  {
+    "id": "onprem",
+    "name": "On-Premise Recording",
+    "description": "Native recording SDK; kailangan ng Linux host at native build.",
+    "docs": "https://docs.agora.io/en/api-reference/api-ref/on-premise-recording",
+    "github": "https://github.com/AgoraIO/Recording",
+    "auth": "specialized",
+    "operations": [],
+    "note": "May setup guide; walang executable adapter sa browser lab na ito."
+  },
+  {
+    "id": "servergateway",
+    "name": "Server Gateway",
+    "description": "Native server media integration; kailangan ng Linux SDK.",
+    "docs": "https://docs.agora.io/en/api-reference/api-ref",
+    "github": "",
+    "auth": "specialized",
+    "operations": [],
+    "note": "May setup guide; walang executable adapter sa browser lab na ito."
+  },
+  {
+    "id": "iot",
+    "name": "IoT SDK",
+    "description": "Device integration; kailangan ng compatible hardware at native SDK.",
+    "docs": "https://docs.agora.io/en/api-reference/api-ref",
+    "github": "",
+    "auth": "specialized",
+    "operations": [],
+    "note": "May setup guide; walang executable adapter sa browser lab na ito."
+  }
+]

@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.artifacts/
+target/
+.env
+.env.*
+!.env.example
+logs/
+var/
+playwright-report/
+test-results/
+event-kit/
+*.zip

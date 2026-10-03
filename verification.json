@@ -1,0 +1,30 @@
+{
+  "recordedAt": "2026-10-02",
+  "scope": "Local verification only; no Agora account credentials available",
+  "coverage": { "productGroups": 17, "restOperations": 178, "openApiOperations": 56, "legacyReferenceOperations": 122, "specializedSetupOnlyGroups": 4 },
+  "checks": {
+    "eslint": "passed",
+    "schemaCompilation": "passed",
+    "browserBuild": "passed",
+    "localTests": { "passed": 191, "failed": 0, "skipped": 0 },
+    "browserTests": { "passed": 4, "failed": 0 },
+    "productionDependencyAudit": "passed; npm audit --omit=dev exited 0",
+    "portableKitStartup": "passed without npm install; local health, catalog, and page returned successfully"
+  },
+  "browser": "Microsoft Edge, Playwright, fake media devices",
+  "liveAgoraRequests": 0,
+  "liveVerified": false,
+  "credentialsIncluded": false,
+  "limitations": [
+    "OpenAPI request validation does not verify provider responses or business rules.",
+    "Legacy references have partial validation, not complete payload contracts.",
+    "Synthetic-key token tests do not verify authentication with Agora.",
+    "RTC media delivery, real devices, account permissions, service availability, and usage billing remain unverified.",
+    "Chat, Whiteboard, and Signaling client SDK UIs are linked references rather than embedded clients.",
+    "Native SDK, hardware, partner callbacks, and HMAC-only operations require additional integration."
+  ],
+  "testRunNotes": [
+    "The Host-header fixture was corrected to use node:http because Node fetch rewrote the supplied Host header; the expected 403 was preserved.",
+    "The first browser run had a click timeout; isolated diagnosis and the unchanged full browser suite subsequently passed."
+  ]
+}

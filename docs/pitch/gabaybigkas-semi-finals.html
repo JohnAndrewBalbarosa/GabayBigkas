@@ -1,0 +1,773 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>GabayBigkas — Agora Voice First Semi-Finals</title>
+  <style>
+    :root {
+      --ink: #f7f7f2;
+      --muted: #a9b4bd;
+      --dim: #75808a;
+      --night: #06120f;
+      --panel: rgba(15, 35, 30, .78);
+      --line: rgba(216, 255, 237, .15);
+      --mint: #42f5a7;
+      --lime: #cbff4a;
+      --coral: #ff7058;
+      --blue: #5cbcff;
+      --shadow: 0 32px 90px rgba(0, 0, 0, .42);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--night);
+      color: var(--ink);
+      font-family: Inter, Aptos, system-ui, sans-serif;
+    }
+
+    button, input { font: inherit; }
+
+    .deck {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background:
+        radial-gradient(circle at 88% 12%, rgba(66, 245, 167, .16), transparent 27%),
+        radial-gradient(circle at 5% 96%, rgba(92, 188, 255, .10), transparent 30%),
+        linear-gradient(145deg, #06120f 0%, #091a16 55%, #07100e 100%);
+      isolation: isolate;
+    }
+
+    .deck::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      opacity: .19;
+      background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(to bottom, black, transparent 84%);
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: clamp(18px, 3vh, 34px);
+      padding: clamp(34px, 5vw, 80px) clamp(42px, 7vw, 112px) clamp(52px, 7vh, 84px);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateX(4%);
+      transition: opacity .34s ease, transform .48s cubic-bezier(.22,.8,.22,1), visibility .34s;
+    }
+
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(0);
+    }
+
+    .slide.exit-left { transform: translateX(-4%); }
+
+    .slide-head, .slide-foot, .row, .split, .brand, .controls, .timer,
+    .demo-label, .slot-actions, .status-line, .metric, .flow, .evidence-row {
+      display: flex;
+      align-items: center;
+    }
+
+    .slide-head { justify-content: space-between; min-height: 28px; }
+
+    .brand { gap: 11px; font-weight: 700; letter-spacing: -.02em; }
+
+    .brand-mark {
+      width: 26px;
+      aspect-ratio: 1;
+      border: 3px solid var(--mint);
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 5px var(--night), inset 0 0 0 8px var(--mint);
+    }
+
+    .track {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+
+    .content { align-self: center; min-width: 0; }
+
+    .eyebrow {
+      margin: 0 0 14px;
+      color: var(--mint);
+      font-size: clamp(12px, 1.2vw, 16px);
+      font-weight: 700;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+    h1, h2, h3 { font-family: Inter, "Aptos Display", system-ui, sans-serif; }
+
+    h1 {
+      max-width: 950px;
+      margin-bottom: 24px;
+      font-size: clamp(54px, 7.5vw, 118px);
+      line-height: .96;
+      letter-spacing: -.065em;
+    }
+
+    h2 {
+      max-width: 980px;
+      margin-bottom: clamp(18px, 3vh, 32px);
+      font-size: clamp(36px, 5vw, 76px);
+      line-height: 1.03;
+      letter-spacing: -.052em;
+    }
+
+    h3 { margin-bottom: 10px; font-size: clamp(18px, 2vw, 29px); letter-spacing: -.025em; }
+
+    .accent { color: var(--mint); }
+    .coral { color: var(--coral); }
+    .lime { color: var(--lime); }
+
+    .lead {
+      max-width: 900px;
+      color: #d9e1dd;
+      font-size: clamp(19px, 2vw, 31px);
+      line-height: 1.42;
+      letter-spacing: -.018em;
+    }
+
+    .micro { color: var(--muted); font-size: clamp(12px, 1vw, 15px); line-height: 1.45; }
+    .big-number { font: 800 clamp(48px, 6vw, 96px)/1 Inter, sans-serif; letter-spacing: -.065em; }
+
+    .split { align-items: stretch; gap: clamp(24px, 4vw, 64px); }
+    .split > * { flex: 1; min-width: 0; }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: clamp(12px, 1.7vw, 24px);
+    }
+
+    .card {
+      position: relative;
+      min-height: 170px;
+      padding: clamp(20px, 2.3vw, 34px);
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: linear-gradient(145deg, rgba(18, 43, 36, .90), rgba(9, 26, 22, .68));
+      box-shadow: 0 18px 55px rgba(0,0,0,.16);
+    }
+
+    .card::after {
+      content: "";
+      position: absolute;
+      right: -32px;
+      bottom: -52px;
+      width: 120px;
+      aspect-ratio: 1;
+      border: 1px solid rgba(66,245,167,.18);
+      border-radius: 50%;
+    }
+
+    .card p { margin-bottom: 0; color: var(--muted); font-size: clamp(14px, 1.35vw, 20px); line-height: 1.45; }
+
+    .card .index {
+      display: inline-grid;
+      width: 34px;
+      aspect-ratio: 1;
+      margin-bottom: 30px;
+      place-items: center;
+      border: 1px solid rgba(66,245,167,.34);
+      border-radius: 50%;
+      color: var(--mint);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .voice-proof {
+      padding: clamp(24px, 3vw, 44px);
+      border: 1px solid rgba(66,245,167,.28);
+      border-radius: 28px;
+      background: rgba(66,245,167,.065);
+    }
+
+    .wave {
+      display: flex;
+      align-items: center;
+      height: 104px;
+      gap: 7px;
+    }
+
+    .wave i {
+      display: block;
+      width: 6px;
+      height: var(--h);
+      border-radius: 99px;
+      background: linear-gradient(to top, var(--mint), var(--lime));
+      animation: pulse 1.7s ease-in-out infinite alternate;
+      animation-delay: var(--d);
+    }
+
+    @keyframes pulse { to { transform: scaleY(.55); opacity: .55; } }
+
+    .quote {
+      max-width: 1080px;
+      font: 600 clamp(28px, 4.2vw, 66px)/1.14 Inter, sans-serif;
+      letter-spacing: -.045em;
+    }
+
+    .journey {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 16px;
+      counter-reset: journey;
+    }
+
+    .journey-step {
+      position: relative;
+      min-height: 230px;
+      padding: 26px 24px;
+      border-top: 2px solid var(--line);
+      counter-increment: journey;
+    }
+
+    .journey-step::before {
+      content: "0" counter(journey);
+      display: block;
+      margin-bottom: 44px;
+      color: var(--mint);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .12em;
+    }
+
+    .journey-step p { color: var(--muted); line-height: 1.45; }
+
+    .demo-grid {
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 15px;
+      height: min(52vh, 500px);
+    }
+
+    .media-slot {
+      position: relative;
+      display: grid;
+      min-height: 0;
+      overflow: hidden;
+      place-items: center;
+      border: 1.5px dashed rgba(216,255,237,.27);
+      border-radius: 22px;
+      background: rgba(6,18,15,.54);
+      transition: border-color .2s, background .2s, transform .2s;
+    }
+
+    .media-slot.primary { grid-row: 1 / 3; }
+    .media-slot.dragging { border-color: var(--mint); background: rgba(66,245,167,.11); transform: scale(.995); }
+    .media-slot.filled { border-style: solid; }
+
+    .media-slot img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .slot-copy { z-index: 1; max-width: 300px; padding: 24px; text-align: center; }
+    .slot-copy strong { display: block; margin-bottom: 8px; font-size: clamp(16px, 1.5vw, 22px); }
+    .slot-copy span { color: var(--muted); font-size: 13px; }
+    .slot-copy .slot-icon { margin-bottom: 12px; color: var(--mint); font-size: 32px; }
+    .filled .slot-copy { opacity: 0; }
+
+    .slot-actions {
+      position: absolute;
+      z-index: 2;
+      right: 12px;
+      bottom: 12px;
+      gap: 8px;
+      opacity: 0;
+      transition: opacity .2s;
+    }
+
+    .media-slot:hover .slot-actions, .media-slot:focus-within .slot-actions { opacity: 1; }
+
+    .slot-button {
+      padding: 8px 11px;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 999px;
+      background: rgba(4,12,10,.82);
+      color: white;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    .slot-input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+
+    .architecture {
+      display: grid;
+      grid-template-columns: 1fr 70px 1.15fr 70px 1fr;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .system-node {
+      min-height: 230px;
+      padding: clamp(20px, 2.4vw, 34px);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--panel);
+    }
+
+    .system-node.center { border-color: rgba(66,245,167,.42); background: rgba(32, 72, 59, .64); }
+    .system-node ul { margin: 24px 0 0; padding: 0; list-style: none; }
+    .system-node li { padding: 7px 0; color: var(--muted); font-size: clamp(13px, 1.2vw, 18px); }
+    .system-node li::before { content: "↳"; margin-right: 9px; color: var(--mint); }
+    .arrow { color: var(--mint); font-size: 42px; text-align: center; }
+
+    .evidence-list { display: grid; gap: 12px; }
+    .evidence-row { gap: 16px; padding: 15px 18px; border-bottom: 1px solid var(--line); }
+    .evidence-row b { min-width: 145px; font-size: 14px; }
+    .evidence-row span:last-child { color: var(--muted); }
+
+    .status-dot { width: 10px; aspect-ratio: 1; flex: 0 0 auto; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 6px rgba(66,245,167,.08); }
+    .status-dot.next { background: var(--lime); box-shadow: 0 0 0 6px rgba(203,255,74,.08); }
+
+    .truth-card {
+      padding: 26px;
+      border-left: 3px solid var(--mint);
+      background: linear-gradient(90deg, rgba(66,245,167,.09), transparent);
+    }
+
+    .truth-card p { margin: 0; font-size: clamp(19px, 2vw, 29px); line-height: 1.45; }
+
+    .roadmap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+    .roadmap .card { min-height: 260px; }
+    .roadmap .phase { color: var(--mint); font-size: 12px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase; }
+    .roadmap h3 { margin-top: 46px; }
+
+    .final-lockup { max-width: 980px; }
+    .final-lockup h2 { font-size: clamp(58px, 8vw, 124px); }
+    .tagline { color: var(--muted); font-size: clamp(20px, 2.2vw, 34px); }
+
+    .slide-foot { justify-content: space-between; color: var(--dim); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+    .slide-time { color: var(--muted); }
+
+    .chrome {
+      position: fixed;
+      z-index: 20;
+      right: clamp(18px, 3vw, 42px);
+      bottom: clamp(16px, 2.5vw, 36px);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .controls {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(4, 13, 11, .74);
+      backdrop-filter: blur(16px);
+    }
+
+    .controls button {
+      width: 42px;
+      height: 38px;
+      border: 0;
+      border-right: 1px solid var(--line);
+      background: transparent;
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    .controls button:last-child { border-right: 0; }
+    .controls button:hover { background: rgba(66,245,167,.1); }
+
+    .timer {
+      height: 40px;
+      gap: 9px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(4, 13, 11, .74);
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      backdrop-filter: blur(16px);
+    }
+
+    .timer.over { color: var(--coral); border-color: rgba(255,112,88,.36); }
+
+    .progress {
+      position: fixed;
+      z-index: 21;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      height: 4px;
+      background: rgba(255,255,255,.07);
+    }
+
+    .progress > div { height: 100%; background: linear-gradient(90deg, var(--mint), var(--lime)); transition: width .35s ease; }
+
+    .notes-panel {
+      position: fixed;
+      z-index: 30;
+      left: 24px;
+      bottom: 24px;
+      width: min(520px, calc(100vw - 48px));
+      max-height: 38vh;
+      overflow: auto;
+      padding: 20px 22px;
+      border: 1px solid rgba(66,245,167,.3);
+      border-radius: 18px;
+      background: rgba(3, 11, 9, .94);
+      box-shadow: var(--shadow);
+      color: #d9e1dd;
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .notes-panel[hidden] { display: none; }
+    .notes-panel strong { display: block; margin-bottom: 8px; color: var(--mint); }
+    .speaker-notes { display: none; }
+
+    @media (max-width: 840px), (max-height: 650px) {
+      .slide { overflow-y: auto; padding: 28px 34px 58px; }
+      h1 { font-size: clamp(48px, 12vw, 82px); }
+      h2 { font-size: clamp(34px, 8vw, 58px); }
+      .cards, .roadmap { grid-template-columns: 1fr; }
+      .journey { grid-template-columns: repeat(2, 1fr); }
+      .architecture { grid-template-columns: 1fr; }
+      .arrow { transform: rotate(90deg); }
+      .demo-grid { height: auto; grid-template-columns: 1fr; grid-template-rows: repeat(3, 250px); }
+      .media-slot.primary { grid-row: auto; }
+      .track { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+
+    @media print {
+      @page { size: 16in 9in; margin: 0; }
+      html, body { overflow: visible; background: #06120f; }
+      .deck { width: auto; height: auto; }
+      .slide { position: relative; display: grid; width: 16in; height: 9in; page-break-after: always; opacity: 1; visibility: visible; transform: none; }
+      .chrome, .progress, .notes-panel { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck" aria-live="polite">
+    <section class="slide active" data-seconds="15" aria-label="Slide 1 of 10">
+      <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Agora Track · Voice First</div></header>
+      <div class="content">
+        <p class="eyebrow">Your voice, your guide.</p>
+        <h1>Practice that<br><span class="accent">listens back.</span></h1>
+        <p class="lead">An AI-guided English-speaking experience that turns live voice into immediate, repeatable practice.</p>
+      </div>
+      <footer class="slide-foot"><span>Semi-Finals Round</span><span class="slide-time">00:15</span></footer>
+      <aside class="speaker-notes">Hook: “You know what you want to say. But when you are unsure of your pronunciation, hesitation often speaks first.” Then introduce GabayBigkas in one sentence.</aside>
+    </section>
+
+    <section class="slide" data-seconds="25" aria-label="Slide 2 of 10">
+      <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Problem · Education</div></header>
+      <div class="content">
+        <p class="eyebrow">The pain point</p>
+        <h2>Every learner needs feedback.<br><span class="coral">A teacher cannot hear every attempt.</span></h2>
+        <div class="cards">
+          <article class="card"><span class="index">01</span><h3>Limited attention</h3><p>In a large class, teachers cannot listen closely to every sentence from every learner.</p></article>
+          <article class="card"><span class="index">02</span><h3>Generic transcripts</h3><p>Ordinary ASR shows what it heard, but rarely turns uncertainty into a guided practice step.</p></article>
+          <article class="card"><span class="index">03</span><h3>Confidence gap</h3><p>When feedback is delayed or intimidating, learners get fewer chances to speak and try again.</p></article>
+        </div>
+      </div>
+      <footer class="slide-foot"><span>Target: guided English learners + educators</span><span class="slide-time">00:25</span></footer>
+      <aside class="speaker-notes">Target market: English learners in guided classroom or coaching sessions, and educators who need a focused review queue. Avoid unsupported market-size claims.</aside>
+    </section>
+
+    <section class="slide" data-seconds="25" aria-label="Slide 3 of 10">
+      <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">The Solution</div></header>
+      <div class="content">
+        <p class="eyebrow">Prompt → Speak → Compare → Guide → Retry</p>
+        <h2>An AI coach built around the learner’s <span class="accent">actual voice.</span></h2>
+        <div class="journey">
+          <article class="journey-step"><h3>AI coach</h3><p>Prompts a reading or conversation aligned with DepEd, CHED, or another trusted learning institution.</p></article>
+          <article class="journey-step"><h3>Live voice</h3><p>Agora carries the conversation while the session audio and transcript are captured.</p></article>
+          <article class="journey-step"><h3>Second listen</h3><p>BuzzASR produces a second timestamped transcript designed for Filipino and Tagalog speech contexts.</p></article>
+          <article class="journey-step"><h3>Deterministic diff</h3><p>The system parses both transcripts and identifies the exact words on which they disagree.</p></article>
+          <article class="journey-step"><h3>Guided retry</h3><p>A disagreement triggers trusted pronunciation guidance; the learner retries until both transcripts agree.</p></article>
+        </div>
+      </div>
+      <footer class="slide-foot"><span>Immediate guidance · Repeatable practice · Weekly quality audit</span><span class="slide-time">00:25</span></footer>
+      <aside class="speaker-notes">Walk through the five-step loop. In the learner experience, transcript disagreement is the operational signal used to deliver guidance immediately. The learner repeats the attempt until the two transcripts agree.</aside>
+    </section>
+
+    <section class="slide" data-seconds="25" aria-label="Slide 4 of 10">
+      <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Strategic Integration</div></header>
+      <div class="content split">
+        <div>
+          <p class="eyebrow">Why Agora</p>
+          <h2>Voice is the <span class="accent">product surface</span>, not an add-on.</h2>
+          <p class="lead">Agora RTC makes the live learner–AI conversation the center of the experience—where coaching, recording, transcription, and the retry loop begin.</p>
+        </div>
+        <div class="voice-proof">
+          <div class="wave" aria-label="Animated audio waveform">
+            <i style="--h:24%;--d:-.1s"></i><i style="--h:58%;--d:-.7s"></i><i style="--h:34%;--d:-1.1s"></i><i style="--h:82%;--d:-.3s"></i><i style="--h:48%;--d:-1.4s"></i><i style="--h:94%;--d:-.6s"></i><i style="--h:62%;--d:-1s"></i><i style="--h:38%;--d:-.2s"></i><i style="--h:72%;--d:-1.3s"></i><i style="--h:26%;--d:-.8s"></i><i style="--h:52%;--d:-.4s"></i><i style="--h:88%;--d:-1.2s"></i>
+          </div>
+          <h3>Without voice, the learning loop breaks.</h3>
+          <p class="micro">No live speaking turn → no transcript pair → no deterministic comparison → no personalized guidance or retry.</p>
+        </div>
+      </div>
+      <footer class="slide-foot"><span>Agora RTC · Short-lived server tokens · Browser media</span><span class="slide-time">00:25</span></footer>
+      <aside class="speaker-notes">Connect directly to the voice-first deduction rule. Agora is essential because the product starts with a live speaking interaction, not a form or text workflow.</aside>
+    </section>
+
+    <section class="slide" data-seconds="50" aria-label="Slide 5 of 10">
+      <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Live Demo</div></header>
+      <div class="content">
+        <p class="eyebrow">Show, don’t tell · drop screenshots here</p>
+        <div class="demo-grid">
+          <div class="media-slot primary" data-slot="learner" tabindex="0">
+            <div class="slot-copy"><div class="slot-icon">＋</div><strong>AI coach session</strong><span>Drop image or click to add<br>Suggested: guided reading page</span></div>
+            <div class="slot-actions"><button class="slot-button choose" type="button">Choose image</button><button class="slot-button clear" type="button">Clear</button></div>
+            <input class="slot-input" type="file" accept="image/*" aria-label="Choose learner session screenshot">
+          </div>
+          <div class="media-slot" data-slot="rtc" tabindex="0">
+            <div class="slot-copy"><div class="slot-icon">＋</div><strong>Agora voice session</strong><span>Suggested: two-browser RTC view</span></div>
+            <div class="slot-actions"><button class="slot-button choose" type="button">Choose image</button><button class="slot-button clear" type="button">Clear</button></div>
+            <input class="slot-input" type="file" accept="image/*" aria-label="Choose Agora RTC screenshot">
+          </div>
+          <div class="media-slot" data-slot="review" tabindex="0">
+            <div class="slot-copy"><div class="slot-icon">＋</div><strong>Guidance and retry</strong><span>Suggested: transcript diff and learning links</span></div>
+            <div class="slot-actions"><button class="slot-button choose" type="button">Choose image</button><button class="slot-button clear" type="button">Clear</button></div>
+            <input class="slot-input" type="file" accept="image/*" aria-label="Choose guidance and retry screenshot">
+          </div>
+        </div>
+      </div>
+      <footer class="slide-foot"><span>Tip: drag files directly into each frame</span><span class="slide-time">00:50</span></footer>
+      <aside class="speaker-notes">Demo sequence: (1) let the AI coach present an institution-aligned prompt; (2) show the Agora voice session and captured transcript; (3) show the deterministic transcript difference, trusted pronunciation guide or YouTube resource, and the learner retry. Label any unimplemented screen as a prototype. Do not show credentials, tokens, channel IDs, or personal data.</aside>
+    </section>
+
+    <section class="slide" data-seconds="35" aria-label="Slide 6 of 10">
+      <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Technical Implementation</div></header>
+      <div class="content">
+        <p class="eyebrow">One voice session · two evidence paths</p>
+        <h2>Built for traceability from <span class="accent">voice to review.</span></h2>
+        <div class="architecture">
+          <article class="system-node"><h3>AI coach + browser</h3><ul><li>Institution-aligned prompts</li><li>Agora RTC + transcript</li><li>Consented audio capture</li></ul></article>
+          <div class="arrow" aria-hidden="true">→</div>
+          <article class="system-node center"><h3>Deterministic workflow</h3><ul><li>Auth, roles, sessions</li><li>Audio preprocessing</li><li>Transcript parsing + diff</li><li>Guidance + retry state</li></ul></article>
+          <div class="arrow" aria-hidden="true">→</div>
+          <article class="system-node"><h3>Second model</h3><ul><li>Rust model gateway</li><li>BuzzASR CUDA worker</li><li>Timestamped transcript</li><li>Filipino/Tagalog context</li></ul></article>
+        </div>
+      </div>
+      <footer class="slide-foot"><span>Local-first · Adapter boundaries · Secrets stay server-side</span><span class="slide-time">00:35</span></footer>
+      <aside class="speaker-notes">Highlight implementation depth: Axum API, SQLite, private filesystem audio, AudioWorklet capture, duration-preserving preprocessing, 30-second model windows with overlap, and a separate BuzzASR gateway. Describe BuzzASR as the selected Filipino/Tagalog-capable comparator; do not claim superior accuracy until benchmarks exist.</aside>
+    </section>
+
+    <section class="slide" data-seconds="25" aria-label="Slide 7 of 10">
+      <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Innovation + Judgment</div></header>
+      <div class="content split">
+        <div>
+          <p class="eyebrow">Immediate feedback + weekly audit</p>
+          <p class="quote">“Disagreement drives the <span class="accent">next practice step.</span> Agreement is what we audit.”</p>
+        </div>
+        <div class="evidence-list">
+          <div class="evidence-row"><span class="status-dot"></span><b>During each session</b><span>A transcript disagreement triggers guidance and trusted learning links, followed by another attempt.</span></div>
+          <div class="evidence-row"><span class="status-dot"></span><b>Negative prediction</b><span>When both transcripts agree, the system records no detected issue for that attempt.</span></div>
+          <div class="evidence-row"><span class="status-dot next"></span><b>Weekly audit</b><span>Humans sample agreement cases: each reviewed case can be a true negative or a false negative.</span></div>
+        </div>
+      </div>
+      <footer class="slide-foot"><span>Confirmed misses notify learners and become labeled improvement data</span><span class="slide-time">00:25</span></footer>
+      <aside class="speaker-notes">Be precise about the confusion matrix. This weekly audit samples agreement cases, which are negative predictions. Human review can therefore classify each sample only as a true negative or false negative. A confirmed false negative triggers a learner notification and becomes labeled evidence for improving the models or comparison policy.</aside>
+    </section>
+
+    <section class="slide" data-seconds="20" aria-label="Slide 8 of 10">
+      <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">MVP Evidence</div></header>
+      <div class="content split">
+        <div>
+          <p class="eyebrow">Working foundation</p>
+          <h2>Built, tested, and honest about the <span class="accent">next gate.</span></h2>
+        </div>
+        <div class="evidence-list">
+          <div class="evidence-row"><span class="status-dot"></span><b>Implemented</b><span>Auth, sessions, PCM ingestion, comparison, annotation, cleanup</span></div>
+          <div class="evidence-row"><span class="status-dot"></span><b>Verified locally</b><span>Lint, contracts, builds, Rust/Node tests, browser E2E</span></div>
+          <div class="evidence-row"><span class="status-dot next"></span><b>Live-demo gate</b><span>AI coach flow, shared Agora track, transcript forwarding, guidance/retry, and weekly-audit operations</span></div>
+        </div>
+      </div>
+      <footer class="slide-foot"><span>No fabricated accuracy or live-provider claims</span><span class="slide-time">00:20</span></footer>
+      <aside class="speaker-notes">Say exactly what is working today. The repository has the product API, capture, comparison, annotation, model gateway, and Agora lab foundations. The complete AI-coach-to-retry flow still needs live end-to-end proof. If that gate is completed before pitching, replace the last row with captured evidence.</aside>
+    </section>
+
+    <section class="slide" data-seconds="15" aria-label="Slide 9 of 10">
+      <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Sustainability + Growth</div></header>
+      <div class="content">
+        <p class="eyebrow">Grow from one proven learning loop</p>
+        <h2>Prove value first. Then scale with educators.</h2>
+        <div class="roadmap">
+          <article class="card"><span class="phase">Now · MVP</span><h3>Close the retry loop</h3><p>Prove one AI-coached Agora session through dual transcripts, guidance, and successful retry.</p></article>
+          <article class="card"><span class="phase">Next · Pilot</span><h3>Audit every week</h3><p>Sample agreements, find false negatives, notify affected learners, and improve the comparison policy.</p></article>
+          <article class="card"><span class="phase">Then · Expand</span><h3>Institution deployments</h3><p>Curate approved readings and trusted resources with educators before measured institutional rollout.</p></article>
+        </div>
+      </div>
+      <footer class="slide-foot"><span>Validation before scale · Evidence before claims</span><span class="slide-time">00:15</span></footer>
+      <aside class="speaker-notes">Business path: validate with educators, measure whether focused review saves time and improves practice completion, then design institutional deployment and pricing from pilot evidence.</aside>
+    </section>
+
+    <section class="slide" data-seconds="5" aria-label="Slide 10 of 10">
+      <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Thank You</div></header>
+      <div class="content final-lockup">
+        <p class="eyebrow">Listen. Practice. Speak.</p>
+        <h2>Every voice deserves a <span class="accent">clearer next try.</span></h2>
+        <p class="tagline">GabayBigkas · Built for real-time learning with Agora</p>
+      </div>
+      <footer class="slide-foot"><span>Demo URL / QR slot</span><span class="slide-time">04:00 total</span></footer>
+      <aside class="speaker-notes">Close with the product promise, then stop. Move immediately to Q&amp;A.</aside>
+    </section>
+  </main>
+
+  <div class="chrome" aria-label="Presentation controls">
+    <div class="timer" title="Click to start or pause the 4-minute timer"><span aria-hidden="true">●</span><span id="timer">04:00</span></div>
+    <div class="controls">
+      <button id="previous" type="button" aria-label="Previous slide">←</button>
+      <button id="next" type="button" aria-label="Next slide">→</button>
+      <button id="fullscreen" type="button" aria-label="Toggle fullscreen">⛶</button>
+    </div>
+  </div>
+  <div class="progress" aria-hidden="true"><div id="progress-bar"></div></div>
+  <div class="notes-panel" id="notes-panel" hidden><strong>Speaker notes · N to close</strong><span id="notes-copy"></span></div>
+
+  <script>
+    const slides = [...document.querySelectorAll('.slide')];
+    const progressBar = document.querySelector('#progress-bar');
+    const timerDisplay = document.querySelector('#timer');
+    const timerShell = timerDisplay.closest('.timer');
+    const notesPanel = document.querySelector('#notes-panel');
+    const notesCopy = document.querySelector('#notes-copy');
+    let current = Math.max(0, Math.min(slides.length - 1, Number(location.hash.slice(1)) - 1 || 0));
+    let remaining = slides.reduce((sum, slide) => sum + Number(slide.dataset.seconds), 0);
+    let timerId = null;
+
+    function showSlide(nextIndex) {
+      const boundedIndex = Math.max(0, Math.min(slides.length - 1, nextIndex));
+      slides.forEach((slide, index) => {
+        slide.classList.toggle('active', index === boundedIndex);
+        slide.classList.toggle('exit-left', index < boundedIndex);
+      });
+      current = boundedIndex;
+      location.hash = String(current + 1);
+      progressBar.style.width = `${((current + 1) / slides.length) * 100}%`;
+      notesCopy.textContent = slides[current].querySelector('.speaker-notes')?.textContent || '';
+      document.title = `${current + 1}/${slides.length} · GabayBigkas`;
+    }
+
+    function changeSlide(step) { showSlide(current + step); }
+
+    function formatSeconds(total) {
+      const sign = total < 0 ? '+' : '';
+      const absolute = Math.abs(total);
+      return `${sign}${String(Math.floor(absolute / 60)).padStart(2, '0')}:${String(absolute % 60).padStart(2, '0')}`;
+    }
+
+    function tick() {
+      remaining -= 1;
+      timerDisplay.textContent = formatSeconds(remaining);
+      timerShell.classList.toggle('over', remaining < 0);
+    }
+
+    function toggleTimer() {
+      if (timerId) {
+        clearInterval(timerId);
+        timerId = null;
+        return;
+      }
+      timerId = setInterval(tick, 1000);
+    }
+
+    function toggleNotes() {
+      notesPanel.hidden = !notesPanel.hidden;
+      notesCopy.textContent = slides[current].querySelector('.speaker-notes')?.textContent || '';
+    }
+
+    function toggleFullscreen() {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else document.documentElement.requestFullscreen();
+    }
+
+    function addImage(slot, file) {
+      if (!file?.type.startsWith('image/')) return;
+      const previous = slot.querySelector('img');
+      if (previous?.dataset.url) URL.revokeObjectURL(previous.dataset.url);
+      previous?.remove();
+      const image = document.createElement('img');
+      image.alt = `${slot.dataset.slot} website screenshot`;
+      image.dataset.url = URL.createObjectURL(file);
+      image.src = image.dataset.url;
+      slot.prepend(image);
+      slot.classList.add('filled');
+    }
+
+    function clearImage(slot) {
+      const image = slot.querySelector('img');
+      if (image?.dataset.url) URL.revokeObjectURL(image.dataset.url);
+      image?.remove();
+      slot.classList.remove('filled');
+      slot.querySelector('input').value = '';
+    }
+
+    document.querySelector('#previous').addEventListener('click', () => changeSlide(-1));
+    document.querySelector('#next').addEventListener('click', () => changeSlide(1));
+    document.querySelector('#fullscreen').addEventListener('click', toggleFullscreen);
+    timerShell.addEventListener('click', toggleTimer);
+
+    document.addEventListener('keydown', (event) => {
+      if (['ArrowRight', 'PageDown', ' '].includes(event.key)) { event.preventDefault(); changeSlide(1); }
+      if (['ArrowLeft', 'PageUp'].includes(event.key)) { event.preventDefault(); changeSlide(-1); }
+      if (event.key.toLowerCase() === 'f') toggleFullscreen();
+      if (event.key.toLowerCase() === 'n') toggleNotes();
+      if (event.key.toLowerCase() === 't') toggleTimer();
+      if (event.key === 'Home') showSlide(0);
+      if (event.key === 'End') showSlide(slides.length - 1);
+    });
+
+    document.querySelectorAll('.media-slot').forEach((slot) => {
+      const input = slot.querySelector('input');
+      slot.querySelector('.choose').addEventListener('click', () => input.click());
+      slot.querySelector('.clear').addEventListener('click', () => clearImage(slot));
+      input.addEventListener('change', () => addImage(slot, input.files[0]));
+      slot.addEventListener('dragover', (event) => { event.preventDefault(); slot.classList.add('dragging'); });
+      slot.addEventListener('dragleave', () => slot.classList.remove('dragging'));
+      slot.addEventListener('drop', (event) => {
+        event.preventDefault();
+        slot.classList.remove('dragging');
+        addImage(slot, event.dataTransfer.files[0]);
+      });
+      slot.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') input.click();
+      });
+    });
+
+    window.addEventListener('hashchange', () => {
+      const requested = Number(location.hash.slice(1)) - 1;
+      if (Number.isInteger(requested) && requested !== current) showSlide(requested);
+    });
+
+    showSlide(current);
+  </script>
+</body>
+</html>

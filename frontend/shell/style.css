@@ -1,0 +1,10 @@
+:root { color-scheme: light; font-family: Inter, system-ui, sans-serif; background: #f5f7fb; color: #172033; }
+body { max-width: 64rem; margin: 0 auto; padding: 2rem; }
+header, section { background: white; border: 1px solid #dce2ec; border-radius: 1rem; padding: 1.25rem; margin-block: 1rem; }
+nav, form, .actions { display: flex; gap: .75rem; flex-wrap: wrap; }
+button, a, input { font: inherit; padding: .65rem .85rem; border-radius: .55rem; border: 1px solid #9aa8bd; }
+button, a { cursor: pointer; background: #173e8f; color: white; text-decoration: none; }
+button:disabled { opacity: .5; cursor: not-allowed; }
+.review-card { border-top: 1px solid #dce2ec; padding-block: 1rem; }
+audio { width: 100%; margin-block: .5rem; }
+

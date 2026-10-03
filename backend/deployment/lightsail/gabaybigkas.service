@@ -1,0 +1,22 @@
+[Unit]
+Description=GabayBigkas Rust API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gabaybigkas
+Group=gabaybigkas
+EnvironmentFile=/etc/gabaybigkas/coach.env
+WorkingDirectory=/var/lib/gabaybigkas
+ExecStart=/opt/gabaybigkas/current/agora-coach-api
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/gabaybigkas
+
+[Install]
+WantedBy=multi-user.target

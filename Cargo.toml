@@ -1,0 +1,8 @@
+[workspace]
+resolver = "3"
+members = ["backend/api", "backend/model/api"]
+
+[workspace.package]
+edition = "2024"
+license = "UNLICENSED"
+
