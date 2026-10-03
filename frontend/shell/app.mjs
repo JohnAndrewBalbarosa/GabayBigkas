@@ -18,6 +18,8 @@ function initializePage() {
   bindAuthentication();
   bindLearnerSession();
   bindAnnotatorImport();
+  bindMobileMenu();
+  bindHeroActions();
   void restoreAccountSession();
 }
 
@@ -27,6 +29,36 @@ function bindPublicNavigation() {
   });
   document.querySelectorAll('[data-workspace]').forEach(button => {
     button.addEventListener('click', () => void showWorkspace(button.dataset.workspace));
+  });
+}
+
+function bindHeroActions() {
+  document.querySelector('#hero-cta-start')?.addEventListener('click', () => {
+    if (currentSession) {
+      void showWorkspace(currentSession.role);
+    } else {
+      showPublicPage('login');
+    }
+  });
+  document.querySelector('#hero-cta-about')?.addEventListener('click', () => {
+    showPublicPage('about');
+  });
+}
+
+function bindMobileMenu() {
+  const toggle = document.querySelector('#menu-toggle');
+  const nav = document.querySelector('#primary-nav');
+  if (!toggle || !nav) return;
+  toggle.addEventListener('click', () => {
+    const expanded = toggle.getAttribute('aria-expanded') === 'true';
+    toggle.setAttribute('aria-expanded', String(!expanded));
+    nav.classList.toggle('nav-open', !expanded);
+  });
+  nav.addEventListener('click', event => {
+    if (event.target.tagName === 'BUTTON') {
+      toggle.setAttribute('aria-expanded', 'false');
+      nav.classList.remove('nav-open');
+    }
   });
 }
 
@@ -57,19 +89,29 @@ async function restoreAccountSession() {
   try {
     activateAccount(await api.session());
   } catch {
-    clearAccount('Sign in to open the learner practice or annotator review workspace.');
+    clearAccount('Sign in to access your practice or annotator workspace.');
   }
 }
 
 function activateAccount(session) {
   currentSession = session;
   document.querySelector('#account').hidden = false;
-  document.querySelector('#account-profile').textContent = `${session.email} · ${session.role}`;
+  document.querySelector('#account-profile').textContent = session.email;
   document.querySelector('#workspace-navigation').hidden = false;
   document.querySelectorAll('[data-workspace]').forEach(button => {
     button.hidden = button.dataset.workspace !== session.role;
   });
-  setPageStatus('Secure account session restored.');
+
+  // Hide login and signup buttons when user is authenticated
+  document.querySelectorAll('[data-public-page="login"], [data-public-page="signup"]').forEach(btn => {
+    btn.hidden = true;
+  });
+
+  // Update Hero CTA
+  const heroCta = document.querySelector('#hero-cta-start');
+  if (heroCta) heroCta.textContent = 'Go to Practice Station';
+
+  setPageStatus('Secure account session active.');
   void showWorkspace(session.role);
 }
 
@@ -77,12 +119,27 @@ function clearAccount(message) {
   currentSession = null;
   document.querySelector('#account').hidden = true;
   document.querySelector('#workspace-navigation').hidden = true;
+
+  // Show login and signup buttons when user is logged out
+  document.querySelectorAll('[data-public-page="login"], [data-public-page="signup"]').forEach(btn => {
+    btn.hidden = false;
+  });
+
+  // Reset Hero CTA
+  const heroCta = document.querySelector('#hero-cta-start');
+  if (heroCta) heroCta.textContent = 'Start Practicing Now';
+
   hideWorkspaces();
   showPublicPage('home');
   setPageStatus(message);
 }
 
 function showPublicPage(page) {
+  // If user is already authenticated and navigates to login or signup, redirect to their workspace
+  if (currentSession && (page === 'login' || page === 'signup')) {
+    void showWorkspace(currentSession.role);
+    return;
+  }
   for (const id of ['home', 'about', 'login', 'signup']) {
     document.querySelector(`#${id}`).hidden = id !== page;
   }
@@ -158,11 +215,14 @@ async function renderInferenceJobs() {
 
 function inferenceJobControls(job) {
   const controls = document.createElement('div');
+  controls.className = 'job-control-card';
   const modalButton = document.createElement('button');
+  modalButton.className = 'btn-secondary';
   modalButton.textContent = `Run on Modal · ${job.id}`;
   modalButton.addEventListener('click', () => void runInferenceOnModal(job.id, modalButton));
   const exportButton = document.createElement('button');
-  exportButton.textContent = `Manual Colab fallback · ${job.id}`;
+  exportButton.className = 'btn-secondary';
+  exportButton.textContent = `Colab Fallback · ${job.id}`;
   exportButton.addEventListener('click', () => void downloadInferenceBundle(job.id));
   controls.append(modalButton, exportButton);
   return controls;
@@ -211,5 +271,8 @@ function bindAnnotatorImport() {
 }
 
 function setPageStatus(message) {
-  document.querySelector('#page-status').textContent = message;
+  const status = document.querySelector('#page-status');
+  if (!status) return;
+  status.textContent = message;
+  status.hidden = !message;
 }
