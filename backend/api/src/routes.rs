@@ -1,5 +1,6 @@
 use std::{
-    fs,
+    fs::{self, OpenOptions},
+    io::Write,
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -12,6 +13,7 @@ use axum::{
     routing::{get, post},
 };
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use tower_http::{
     cors::CorsLayer, limit::RequestBodyLimitLayer, services::ServeDir, trace::TraceLayer,
 };
@@ -24,10 +26,14 @@ use crate::{
         Principal, expired_session_cookie, hash_session_token, issue_session_token, session_cookie,
         session_token, verify_password,
     },
+    coach_feedback::YoutubeResource,
     comparison::compare_session,
     error::ApiError,
     inference_bundle::{ImportedInferenceResult, MODEL_ID, MODEL_REVISION},
-    store::{AnnotationItem, AudioChunk, CoachingSession, ImportStart, TranscriptEvent},
+    store::{
+        AnnotationItem, AudioChunk, CoachFeedbackClaim, CoachFeedbackRecord, CoachingSession,
+        ImportStart, TranscriptEvent,
+    },
 };
 
 const MAX_CHUNK_BYTES: usize = 2 * 1024 * 1024;
@@ -52,6 +58,10 @@ pub fn router(state: AppState) -> Router {
         .route(
             "/api/coaching/sessions/{id}/finalize",
             post(finalize_coaching_session),
+        )
+        .route(
+            "/api/coaching/sessions/{id}/coach-feedback",
+            post(create_coach_feedback),
         )
         .route("/api/inference/jobs", get(list_inference_jobs))
         .route(
@@ -283,8 +293,23 @@ async fn upload_audio_chunk(
         .join(&session.id)
         .join("chunks");
     fs::create_dir_all(&chunk_dir)?;
-    let path = chunk_dir.join(format!("{sequence:08}.pcm"));
-    fs::write(&path, &body)?;
+    let content_sha256 = format!("{:x}", Sha256::digest(&body));
+    let path = chunk_dir.join(format!("{sequence:08}-{content_sha256}.pcm"));
+    let created = match OpenOptions::new().write(true).create_new(true).open(&path) {
+        Ok(mut file) => {
+            file.write_all(&body)?;
+            true
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
+            if fs::read(&path)? != body {
+                return Err(ApiError::Conflict(
+                    "audio chunk file does not match its content hash".to_owned(),
+                ));
+            }
+            false
+        }
+        Err(error) => return Err(error.into()),
+    };
     let chunk = AudioChunk {
         sequence,
         sample_rate: sample_rate as u32,
@@ -297,7 +322,9 @@ async fn upload_audio_chunk(
             idempotent,
         })),
         Err(error) => {
-            let _ = fs::remove_file(&path);
+            if created {
+                let _ = fs::remove_file(&path);
+            }
             Err(error)
         }
     }
@@ -322,6 +349,7 @@ struct FinalizeResponse {
     session_id: String,
     status: String,
     acknowledged: bool,
+    idempotent: bool,
     review_items: usize,
     #[serde(skip_serializing_if = "Option::is_none")]
     inference_job_id: Option<String>,
@@ -335,7 +363,22 @@ async fn finalize_coaching_session(
     ensure_allowed_origin(&headers, state.config.allowed_origin.as_deref())?;
     validate_id(&id)?;
     let principal = require_role(&state, &headers, "learner")?;
-    let session = owned_capturing_session(&state, &id, &principal)?;
+    let session = owned_session(&state, &id, &principal)?;
+    if session.status != "capturing" {
+        if let Some(job_id) = session.inference_job_id {
+            return Ok(Json(FinalizeResponse {
+                session_id: id,
+                status: session.status,
+                acknowledged: true,
+                idempotent: true,
+                review_items: 0,
+                inference_job_id: Some(job_id),
+            }));
+        }
+        return Err(ApiError::Conflict(
+            "session finalization is in progress".to_owned(),
+        ));
+    }
     if !state.store.session_has_adult_consent(&id)? {
         return Err(ApiError::Forbidden);
     }
@@ -402,6 +445,16 @@ async fn finalize_coaching_session(
                     tracing::info!(event = "inference.background.completed", job_id = %bg_job_id)
                 }
                 Err(error) => {
+                    if let Err(status_error) = bg_state
+                        .store
+                        .mark_inference_analysis_unavailable(&bg_job_id)
+                    {
+                        tracing::error!(event = "inference.background.failure_status_failed", job_id = %bg_job_id, error = %status_error);
+                    } else if let Err(cleanup_error) = fs::remove_file(&job.audio_path) {
+                        if cleanup_error.kind() != std::io::ErrorKind::NotFound {
+                            tracing::error!(event = "inference.background.audio_cleanup_failed", job_id = %bg_job_id, error = %cleanup_error);
+                        }
+                    }
                     tracing::warn!(event = "inference.background.failed", job_id = %bg_job_id, error = %error)
                 }
             }
@@ -411,9 +464,98 @@ async fn finalize_coaching_session(
         session_id: id,
         status: "pending_manual_inference".to_owned(),
         acknowledged: true,
+        idempotent: false,
         review_items: 0,
         inference_job_id: Some(job_id),
     }))
+}
+
+#[derive(Deserialize)]
+struct CoachFeedbackRequest {
+    agent_id: String,
+}
+
+#[derive(Serialize)]
+struct CoachFeedbackResponse {
+    session_id: String,
+    status: &'static str,
+    coach_message: String,
+    words_to_practice: Vec<String>,
+    youtube_resources: Vec<YoutubeResource>,
+    idempotent: bool,
+}
+
+async fn create_coach_feedback(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+    Json(request): Json<CoachFeedbackRequest>,
+) -> Result<Json<CoachFeedbackResponse>, ApiError> {
+    ensure_allowed_origin(&headers, state.config.allowed_origin.as_deref())?;
+    validate_id(&id)?;
+    let principal = require_role(&state, &headers, "learner")?;
+    let session = owned_session(&state, &id, &principal)?;
+    match state.store.claim_coach_feedback(&id, &request.agent_id)? {
+        CoachFeedbackClaim::Idempotent(record) => {
+            Ok(Json(coach_feedback_response(id, record, true)))
+        }
+        CoachFeedbackClaim::Generate => {
+            let service = match state.coach_feedback.as_ref() {
+                Some(service) => service,
+                None => {
+                    state
+                        .store
+                        .release_coach_feedback_claim(&id, &request.agent_id)?;
+                    return Err(ApiError::ModelUnavailable);
+                }
+            };
+            let generated = match service
+                .generate(&request.agent_id, &session.expected_phrases)
+                .await
+            {
+                Ok(generated) => generated,
+                Err(error) => {
+                    state
+                        .store
+                        .release_coach_feedback_claim(&id, &request.agent_id)?;
+                    return Err(error);
+                }
+            };
+            let record = state.store.complete_coach_feedback(
+                &id,
+                &request.agent_id,
+                &generated.coach_message,
+                &generated.youtube_resource.title,
+                &generated.youtube_resource.video_id,
+                &generated.youtube_resource.url,
+            )?;
+            tracing::info!(
+                event = "coach.feedback.completed",
+                session_id = %id,
+                agent_id = %request.agent_id
+            );
+            Ok(Json(coach_feedback_response(id, record, false)))
+        }
+    }
+}
+
+fn coach_feedback_response(
+    session_id: String,
+    record: CoachFeedbackRecord,
+    idempotent: bool,
+) -> CoachFeedbackResponse {
+    CoachFeedbackResponse {
+        session_id,
+        status: "ready",
+        coach_message: record.coach_message,
+        words_to_practice: Vec::new(),
+        youtube_resources: vec![YoutubeResource {
+            title: record.youtube_title,
+            video_id: record.youtube_video_id,
+            url: record.youtube_url,
+        }],
+        idempotent,
+    }
 }
 
 fn cleanup_chunk_files(chunks: &[AudioChunk]) {
@@ -425,6 +567,7 @@ fn cleanup_chunk_files(chunks: &[AudioChunk]) {
 }
 
 #[derive(Serialize)]
+#[allow(dead_code)]
 struct InferenceJobSummary {
     id: String,
     session_id: String,
@@ -436,12 +579,14 @@ struct InferenceJobSummary {
 }
 
 #[derive(Serialize)]
+#[allow(dead_code)]
 struct PocTicketResponse {
     job_id: String,
     token: String,
     expires_at: i64,
 }
 
+#[allow(dead_code)]
 async fn issue_inference_poc_ticket(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -467,6 +612,7 @@ async fn issue_inference_poc_ticket(
     }))
 }
 
+#[allow(dead_code)]
 async fn list_inference_jobs(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -489,6 +635,7 @@ async fn list_inference_jobs(
     Ok(Json(jobs))
 }
 
+#[allow(dead_code)]
 async fn export_inference_job(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -498,6 +645,7 @@ async fn export_inference_job(
     export_inference_bundle(&state, id)
 }
 
+#[allow(dead_code)]
 async fn export_inference_job_with_poc_ticket(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -517,6 +665,7 @@ async fn export_inference_job_with_poc_ticket(
     }
 }
 
+#[allow(dead_code)]
 fn export_inference_bundle(state: &AppState, id: String) -> Result<Response, ApiError> {
     validate_id(&id)?;
     let job = state.store.inference_job(&id)?.ok_or(ApiError::NotFound)?;
@@ -548,6 +697,7 @@ struct ImportResponse {
     idempotent: bool,
 }
 
+#[allow(dead_code)]
 async fn run_inference_job_on_modal(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -591,6 +741,7 @@ async fn run_modal_inference_workflow(
     import_inference_result_for_job(state, job.id.clone(), result)
 }
 
+#[allow(dead_code)]
 async fn import_inference_result(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -602,6 +753,7 @@ async fn import_inference_result(
     import_inference_result_for_job(&state, id, result)
 }
 
+#[allow(dead_code)]
 async fn import_inference_result_with_poc_ticket(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -622,6 +774,7 @@ async fn import_inference_result_with_poc_ticket(
     }
 }
 
+#[allow(dead_code)]
 fn import_inference_result_for_job(
     state: &AppState,
     id: String,
@@ -710,6 +863,7 @@ fn import_result_workflow(
     Ok(items.len())
 }
 
+#[allow(dead_code)]
 fn unix_seconds() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -842,17 +996,26 @@ fn owned_capturing_session(
     id: &str,
     principal: &Principal,
 ) -> Result<CoachingSession, ApiError> {
+    let session = owned_session(state, id, principal)?;
+    if session.status != "capturing" {
+        return Err(ApiError::Conflict(
+            "session is not accepting input".to_owned(),
+        ));
+    }
+    Ok(session)
+}
+
+fn owned_session(
+    state: &AppState,
+    id: &str,
+    principal: &Principal,
+) -> Result<CoachingSession, ApiError> {
     let session = state
         .store
         .coaching_session(id)?
         .ok_or(ApiError::NotFound)?;
     if session.learner_id != principal.user_id {
         return Err(ApiError::Forbidden);
-    }
-    if session.status != "capturing" {
-        return Err(ApiError::Conflict(
-            "session is not accepting input".to_owned(),
-        ));
     }
     Ok(session)
 }

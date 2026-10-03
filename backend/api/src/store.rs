@@ -392,6 +392,29 @@ impl Store {
         Ok(())
     }
 
+    pub fn mark_inference_analysis_unavailable(&self, id: &str) -> Result<(), ApiError> {
+        let mut connection = self.connection.lock().map_err(|_| ApiError::Internal)?;
+        let transaction = connection.transaction()?;
+        let session_id = transaction
+            .query_row(
+                "SELECT session_id FROM inference_jobs WHERE id=?1",
+                [id],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?
+            .ok_or(ApiError::NotFound)?;
+        transaction.execute(
+            "UPDATE inference_jobs SET status='analysis_unavailable',updated_at=?2 WHERE id=?1 AND status!='completed'",
+            params![id, now()],
+        )?;
+        transaction.execute(
+            "UPDATE coaching_sessions SET status='analysis_unavailable',updated_at=?2 WHERE id=?1",
+            params![session_id, now()],
+        )?;
+        transaction.commit()?;
+        Ok(())
+    }
+
     pub fn begin_inference_import(
         &self,
         id: &str,
