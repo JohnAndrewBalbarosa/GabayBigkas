@@ -14,9 +14,9 @@ Ang transcript disagreement ay review signal lamang. Hindi ito automatic pronunc
 - Duration-preserving mono conversion, 16 kHz resampling, DC removal, bounded normalization, 30-second windows, at 5-second overlap.
 - Temporary full-session audio cleanup pagkatapos ng successful import o 24-hour bounded expiry.
 - Browser learner/annotator shell at independent PCM `AudioWorklet` recorder.
-- Secure manual inference ZIP export at validated, idempotent result import.
 - Private Modal T4 endpoint is the primary MVP GPU boundary. After finalize acknowledgment, Rust spawns a background task that claims one bounded inference bundle, sends it with server-held proxy credentials, and validates the returned result before import. No auto-retry.
-- Optional interactive Colab transfer remains a manual fallback with one short-lived, job-scoped ticket for exactly one HTTPS export then one import.
+- The authenticated backend reads the latest completed Agora assistant message and performs one YouTube Data API search for the session's expected phrase. The frontend receives bounded coach-feedback JSON only.
+- Manual Modal controls and interactive Colab transfer are deprecated and absent from the product HTTP contract.
 - Native Rust backend deployment contract para sa Lightsail. Zero-charge use requires account-specific active credit confirmation.
 - AWS GPU deployment and lifecycle scaling are post-MVP TODO documentation only.
 - Existing Node Agora lab sa `backend/lab` at developer UI sa `frontend/lab`.
@@ -44,8 +44,8 @@ Rust API
   ├─ auth + roles + SQLite
   ├─ private audio preprocessing
   ├─ finalize → immediate acknowledgment → background Modal T4 inference
-  ├─ fallback authorized ZIP export → interactive Colab → validated JSON import
-  ├─ optional one-shot HTTPS POC transfer uses one active job ticket
+  ├─ Agora agent history → latest AI coach response
+  ├─ backend YouTube search → first embeddable practice video
   └─ comparison → sentence clips → annotation queue
 
 Browser annotator → authorized metadata + private clip stream
@@ -61,7 +61,7 @@ Browser annotator → authorized metadata + private clip stream
 6. Logs contain IDs, states, durations, and bounded errors—never passwords, tokens, raw audio, or transcript bodies.
 7. Generated output belongs under `.artifacts/`.
 8. Public Home/About/Login/Sign-up pages and role-specific workspaces stay presentation-only. Public sign-up is unavailable in the POC.
-9. Learner feedback accepts only bounded structured data. YouTube video IDs are validated in the browser; discovery/tool calls and API keys belong in a future authenticated backend adapter.
+9. Learner feedback accepts only bounded structured data. Agora history and YouTube discovery stay in authenticated backend adapters; provider credentials never enter frontend bundles.
 
 ## Product HTTP contract
 
@@ -74,10 +74,7 @@ GET  /api/coaching/sessions/{id}
 POST /api/coaching/sessions/{id}/audio/chunks
 POST /api/coaching/sessions/{id}/agora-transcript-events
 POST /api/coaching/sessions/{id}/finalize
-GET  /api/inference/jobs
-POST /api/inference/jobs/{id}/modal-run
-GET  /api/inference/jobs/{id}/export
-POST /api/inference/jobs/{id}/import
+POST /api/coaching/sessions/{id}/coach-feedback
 GET  /api/annotation/queue
 GET  /api/annotation/items/{id}
 GET  /api/annotation/items/{id}/audio
@@ -176,8 +173,7 @@ npm run verify
 
 - Modal Web Function MUST require proxy authentication, use one T4 container, and accept one claimed job per Rust request. The browser MUST NOT receive Modal credentials.
 - Rust MUST NOT automatically retry Modal inference. A failed claim is released for an explicit annotator retry.
-- Colab fallback is interactive only: no tunnel, public server, SSH, unattended worker, queue loop, keep-alive, automatic retry, or remote-control mechanism.
-- Direct Colab POC transfer MUST process one job per manual notebook run over HTTPS, then exit; manual ZIP transfer remains the fallback.
+- Historical Colab experiments are not connected to the runtime and MUST NOT be exposed as a fallback, endpoint, worker, or operator control.
 - Lightsail hosts only the native Rust product backend; no GPU or Python model runtime.
 - No model output becomes a pronunciation verdict.
 - MVP data is consenting-adult, fixed guided English only.

@@ -7,7 +7,7 @@ Local-first guided English-learning MVP foundation gamit ang Agora RTC at review
 ## Canonical boundaries
 
 - [`backend/api`](backend/api/README.md): Rust product API, auth, sessions, audio, comparison, annotation.
-- [`backend/model`](backend/model/README.md): interactive Colab notebook, pinned Python BuzzASR inference, at deferred experiments.
+- [`backend/model`](backend/model/README.md): private Modal T4 endpoint, pinned Python BuzzASR inference, at deprecated experiments.
 - [`backend/lab`](backend/lab): existing Node Agora event lab.
 - [`frontend`](frontend/README.md): learner, annotator, capture, transport, at lab views.
 - [`SYSTEM.md`](SYSTEM.md): canonical contracts at truth boundary.
@@ -16,7 +16,7 @@ Local-first guided English-learning MVP foundation gamit ang Agora RTC at review
 
 ## Local setup
 
-Prerequisites: Node.js 24+ at Rust 1.98+. Python, CUDA, at model dependencies ay kailangan lang sa interactive Colab inference.
+Prerequisites: Node.js 24+ at Rust 1.98+. Python, CUDA, at model dependencies ay kailangan lang sa private model development.
 
 ```powershell
 npm ci
@@ -40,7 +40,7 @@ npm run start:coach   # Product:   http://127.0.0.1:4320
 npm run start:model   # Optional local model-gateway experiment
 ```
 
-Ang product finalization ay gumagawa ng durable `pending_manual_inference` job. Authorized annotators may use the bounded ZIP flow or issue one short-lived ticket for a single interactive Colab HTTPS run. Isang job lang ang puwedeng active at walang loop, batch, automatic retry, o always-on Colab endpoint.
+Ang product finalization ay gumagawa ng durable inference job at awtomatikong nagpapasimula ng isang private Modal run sa backend. Walang manual Modal o Colab control sa product HTTP contract.
 
 ## Hosting status
 

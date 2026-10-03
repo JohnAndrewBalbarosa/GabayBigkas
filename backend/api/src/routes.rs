@@ -450,10 +450,10 @@ async fn finalize_coaching_session(
                         .mark_inference_analysis_unavailable(&bg_job_id)
                     {
                         tracing::error!(event = "inference.background.failure_status_failed", job_id = %bg_job_id, error = %status_error);
-                    } else if let Err(cleanup_error) = fs::remove_file(&job.audio_path) {
-                        if cleanup_error.kind() != std::io::ErrorKind::NotFound {
-                            tracing::error!(event = "inference.background.audio_cleanup_failed", job_id = %bg_job_id, error = %cleanup_error);
-                        }
+                    } else if let Err(cleanup_error) = fs::remove_file(&job.audio_path)
+                        && cleanup_error.kind() != std::io::ErrorKind::NotFound
+                    {
+                        tracing::error!(event = "inference.background.audio_cleanup_failed", job_id = %bg_job_id, error = %cleanup_error);
                     }
                     tracing::warn!(event = "inference.background.failed", job_id = %bg_job_id, error = %error)
                 }

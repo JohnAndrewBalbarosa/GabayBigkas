@@ -31,6 +31,7 @@ test('explorer renders real catalog, validates requests, and never calls Agora o
 test('local camera preview works with fake browser media and token tools report missing setup', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('#mode')).toHaveText('OFFLINE MODE');
+  await expect(page.locator('#products-count')).toHaveText('17');
   await page.getByRole('button', { name: 'Voice / video test', exact: true }).click();
   await page.locator('#media-mode').selectOption('video');
   await page.locator('#device-preview').click();

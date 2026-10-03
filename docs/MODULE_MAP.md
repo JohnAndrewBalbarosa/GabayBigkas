@@ -11,7 +11,7 @@ backend/
     ├── inference/               Python-only BuzzASR inference
     ├── modal/                   Private single-job T4 endpoint
     ├── deployment/aws/          Post-MVP GPU deferral notice
-    └── experiments/colab/       Interactive MVP GPU notebook
+    └── experiments/colab/       Deprecated historical experiment; not runtime-connected
 backend/deployment/lightsail/    Rust backend service guidance
 frontend/
 ├── shell/                       Product composition
@@ -38,7 +38,7 @@ docs/ · tests/ · scripts/ · data/
 | `model/api` | Optional local gateway experiment | Canonical MVP orchestration |
 | `model/inference` | BuzzASR model loading and GPU inference only | Auth, annotation, persistence |
 | `model/modal` | Private Modal T4 lifecycle, bundle checks, pinned inference | Browser auth, persistence, pronunciation judgments |
-| `model/experiments/colab` | Interactive single-job bundle validation, inference, at optional one-shot HTTPS transfer | Secrets in source, batching, loops, public serving, remote control |
+| `model/experiments/colab` | Deprecated historical experiment only | Runtime integration, secrets, public serving, remote control |
 | `learner/session` | One capture/finalize lifecycle | RTC credentials |
 | `learner/feedback` | Strict learner feedback validation at safe DOM rendering | Provider calls, API keys, result generation |
 | `annotator/review` | One pending review queue | Persistence |
@@ -50,7 +50,7 @@ docs/ · tests/ · scripts/ · data/
 frontend feature → frontend transport → Rust HTTP interface
 Rust route → application/domain step → store/audio/inference-bundle/comparison adapter
 claimed bundle → private Modal T4 endpoint → validated result import
-authorized fallback bundle or one-shot ticket → interactive Colab notebook → validated result import
+Agora history adapter → coach response; YouTube adapter → first practice resource
 Node lab route → existing lab adapters
 ```
 
