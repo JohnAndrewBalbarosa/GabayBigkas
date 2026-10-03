@@ -10,6 +10,7 @@ async function boot() {
     if (!response.ok) throw new Error('Hindi ma-load ang catalog.');
     state.catalog = await response.json();
     const { products, config } = state.catalog;
+    setupRtc({ config, api });
     $('products-count').textContent = products.length;
     $('operations-count').textContent = products.reduce((n, p) => n + p.operations.length, 0);
     $('schema-count').textContent = products.reduce((n, p) => n + p.operations.filter(o => o.validation !== 'partial').length, 0);
@@ -19,7 +20,6 @@ async function boot() {
     renderProducts();
     selectProduct(products[0]);
     bindActions();
-    setupRtc({ config, api });
   } catch (error) { $('notice').textContent = error.message; $('notice').classList.add('error'); }
 }
 
