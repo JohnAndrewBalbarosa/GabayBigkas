@@ -252,12 +252,18 @@ async fn get_coaching_session(
     Ok(Json(session))
 }
 
+#[derive(Serialize)]
+struct ChunkAccepted {
+    accepted: bool,
+    idempotent: bool,
+}
+
 async fn upload_audio_chunk(
     State(state): State<AppState>,
     headers: HeaderMap,
     Path(id): Path<String>,
     body: Bytes,
-) -> Result<StatusCode, ApiError> {
+) -> Result<Json<ChunkAccepted>, ApiError> {
     ensure_allowed_origin(&headers, state.config.allowed_origin.as_deref())?;
     validate_id(&id)?;
     let principal = require_role(&state, &headers, "learner")?;
@@ -278,18 +284,23 @@ async fn upload_audio_chunk(
         .join("chunks");
     fs::create_dir_all(&chunk_dir)?;
     let path = chunk_dir.join(format!("{sequence:08}.pcm"));
-    fs::write(&path, body)?;
+    fs::write(&path, &body)?;
     let chunk = AudioChunk {
         sequence,
         sample_rate: sample_rate as u32,
         channels: channels as u16,
         path: path.to_string_lossy().into_owned(),
     };
-    if let Err(error) = state.store.add_audio_chunk(&id, &chunk) {
-        let _ = fs::remove_file(&path);
-        return Err(error);
+    match state.store.add_audio_chunk(&id, &chunk) {
+        Ok(idempotent) => Ok(Json(ChunkAccepted {
+            accepted: true,
+            idempotent,
+        })),
+        Err(error) => {
+            let _ = fs::remove_file(&path);
+            Err(error)
+        }
     }
-    Ok(StatusCode::NO_CONTENT)
 }
 
 async fn add_transcript_event(
@@ -310,6 +321,7 @@ async fn add_transcript_event(
 struct FinalizeResponse {
     session_id: String,
     status: String,
+    acknowledged: bool,
     review_items: usize,
     #[serde(skip_serializing_if = "Option::is_none")]
     inference_job_id: Option<String>,
@@ -363,12 +375,44 @@ async fn finalize_coaching_session(
         }
     };
     cleanup_chunk_files(&chunks);
-    tracing::info!(event = "inference.job.created", session_id = %id, job_id = %job.id);
+    let job_id = job.id.clone();
+    tracing::info!(event = "inference.job.created", session_id = %id, job_id = %job_id);
+    if state.modal_inference.is_some() {
+        let bg_state = state.clone();
+        let bg_job_id = job_id.clone();
+        tokio::spawn(async move {
+            tracing::info!(event = "inference.background.started", job_id = %bg_job_id);
+            let client = match bg_state.modal_inference.clone() {
+                Some(c) => c,
+                None => return,
+            };
+            let job = match bg_state.store.claim_inference_job_for_modal(&bg_job_id) {
+                Ok(j) => j,
+                Err(error) => {
+                    tracing::warn!(event = "inference.background.claim_failed", job_id = %bg_job_id, error = %error);
+                    return;
+                }
+            };
+            let outcome = run_modal_inference_workflow(&bg_state, &client, &job).await;
+            if let Err(error) = bg_state.store.release_modal_inference_claim(&bg_job_id) {
+                tracing::error!(event = "inference.background.claim_release_failed", job_id = %bg_job_id, error = %error);
+            }
+            match outcome {
+                Ok(_) => {
+                    tracing::info!(event = "inference.background.completed", job_id = %bg_job_id)
+                }
+                Err(error) => {
+                    tracing::warn!(event = "inference.background.failed", job_id = %bg_job_id, error = %error)
+                }
+            }
+        });
+    }
     Ok(Json(FinalizeResponse {
         session_id: id,
         status: "pending_manual_inference".to_owned(),
+        acknowledged: true,
         review_items: 0,
-        inference_job_id: Some(job.id),
+        inference_job_id: Some(job_id),
     }))
 }
 

@@ -483,19 +483,16 @@ impl Store {
         Ok(expired.into_iter().map(|(path, _)| path).collect())
     }
 
-    pub fn add_audio_chunk(&self, session_id: &str, chunk: &AudioChunk) -> Result<(), ApiError> {
-        self.connection
+    pub fn add_audio_chunk(&self, session_id: &str, chunk: &AudioChunk) -> Result<bool, ApiError> {
+        let rows = self.connection
             .lock()
             .map_err(|_| ApiError::Internal)?
             .execute(
-                "INSERT INTO audio_chunks(session_id,sequence,sample_rate,channels,path,created_at) VALUES(?1,?2,?3,?4,?5,?6)",
+                "INSERT OR IGNORE INTO audio_chunks(session_id,sequence,sample_rate,channels,path,created_at) VALUES(?1,?2,?3,?4,?5,?6)",
                 params![session_id, chunk.sequence, chunk.sample_rate, chunk.channels, chunk.path, now()],
             )
-            .map_err(|error| match error {
-                rusqlite::Error::SqliteFailure(_, _) => ApiError::Conflict("audio chunk sequence already exists".to_owned()),
-                other => other.into(),
-            })?;
-        Ok(())
+            .map_err(|error| -> ApiError { error.into() })?;
+        Ok(rows == 0)
     }
 
     pub fn audio_chunks(&self, session_id: &str) -> Result<Vec<AudioChunk>, ApiError> {
@@ -710,5 +707,41 @@ mod tests {
         ));
         store.release_modal_inference_claim(&job.id).unwrap();
         assert!(store.claim_inference_job_for_modal(&job.id).is_ok());
+    }
+
+    #[test]
+    fn audio_chunk_insertion_is_idempotent() {
+        use super::AudioChunk;
+
+        let directory = tempfile::tempdir().unwrap();
+        let store = Store::open(&directory.path().join("coach.sqlite3")).unwrap();
+        store
+            .seed_local_user("learner@example.test", "password12345", "learner")
+            .unwrap();
+        let learner = store
+            .find_local_user("learner@example.test")
+            .unwrap()
+            .unwrap();
+        let session = store
+            .create_coaching_session(&learner.id, "exercise", &["Prompt".to_owned()], true)
+            .unwrap();
+
+        let chunk = AudioChunk {
+            sequence: 0,
+            sample_rate: 16_000,
+            channels: 1,
+            path: "chunk_0.pcm".to_owned(),
+        };
+
+        // First insert: not duplicate (idempotent = false)
+        let first = store.add_audio_chunk(&session.id, &chunk).unwrap();
+        assert!(!first);
+
+        // Second insert with same sequence: idempotent duplicate (idempotent = true)
+        let second = store.add_audio_chunk(&session.id, &chunk).unwrap();
+        assert!(second);
+
+        let chunks = store.audio_chunks(&session.id).unwrap();
+        assert_eq!(chunks.len(), 1);
     }
 }

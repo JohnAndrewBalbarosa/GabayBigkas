@@ -32,6 +32,7 @@ export class CoachApi {
       body: bytes,
     });
     await ensureSuccess(response);
+    return response.json();
   }
 
   async addAgoraTranscript(sessionId, event) {

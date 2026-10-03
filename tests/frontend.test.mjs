@@ -78,17 +78,17 @@ test('Modal execution request is authenticated by the Rust session and scoped to
   assert.equal(request.options.headers, undefined);
 });
 
-test('LearnerSession finishes and sequentially triggers private Modal T4 inference', async () => {
+test('LearnerSession finishes with fire-and-forget finalize and does not trigger Modal inference', async () => {
   const statuses = [];
   const calls = [];
   const fakeApi = {
     finalizeSession: async id => {
       calls.push(['finalize', id]);
-      return { session_id: id, status: 'pending_manual_inference', inference_job_id: 'job-123' };
+      return { session_id: id, status: 'pending_manual_inference', acknowledged: true, inference_job_id: 'job-123' };
     },
-    runInferenceOnModal: async jobId => {
-      calls.push(['modal-run', jobId]);
-      return { job_id: jobId, status: 'review_ready', review_items: 3 };
+    runInferenceOnModal: async () => {
+      calls.push(['modal-run']);
+      return { status: 'review_ready' };
     },
   };
   const session = new LearnerSession(fakeApi, status => statuses.push(status));
@@ -105,42 +105,49 @@ test('LearnerSession finishes and sequentially triggers private Modal T4 inferen
 
   assert.equal(stoppedTrack, true);
   assert.equal(stoppedRecorder, true);
-  assert.deepEqual(calls, [['finalize', 'sess-1'], ['modal-run', 'job-123']]);
-  assert.equal(result.status, 'review_ready');
-  assert.equal(result.review_items, 3);
-  assert.ok(statuses.includes('Pinoproseso ang session.'));
-  assert.ok(statuses.includes('Pinoproseso sa private Modal T4…'));
-  assert.ok(statuses.some(status => status.includes('Modal complete') && status.includes('3 review item(s)')));
-});
-
-test('LearnerSession handles Modal failure gracefully without throwing and leaves safe status', async () => {
-  const statuses = [];
-  const fakeApi = {
-    finalizeSession: async id => ({ session_id: id, status: 'pending_manual_inference', inference_job_id: 'job-123' }),
-    runInferenceOnModal: async () => { throw new Error('Worker offline'); },
-  };
-  const session = new LearnerSession(fakeApi, status => statuses.push(status));
-  session.active = {
-    session: { id: 'sess-1' },
-    stream: { getTracks: () => [] },
-    recorder: { stop: async () => {} },
-    transcriptSequence: 0,
-  };
-
-  const result = await session.finish();
+  assert.deepEqual(calls, [['finalize', 'sess-1']]);
   assert.equal(result.status, 'pending_manual_inference');
-  assert.ok(statuses.some(status => status.includes('Hindi natapos ang automatic Modal inference')));
+  assert.equal(result.acknowledged, true);
+  assert.ok(statuses.includes('Pinoproseso ang session.'));
+  assert.ok(statuses.some(s => s.includes('Natanggap na ng backend')));
 });
 
-test('renderSessionStatus reflects Modal and human review without Google Colab assumptions', () => {
+test('renderSessionStatus reflects backend-managed inference without frontend Modal assumptions', () => {
   const pendingStatus = renderSessionStatus('pending_manual_inference');
   const exportedStatus = renderSessionStatus('exported');
   const readyStatus = renderSessionStatus('review_ready');
   const unavailableStatus = renderSessionStatus('model_unavailable');
 
+  assert.match(pendingStatus, /backend/i);
   assert.doesNotMatch(pendingStatus, /colab/i);
-  assert.match(pendingStatus, /Modal/i);
   assert.doesNotMatch(exportedStatus, /colab/i);
   assert.match(readyStatus, /human review/i);
   assert.match(unavailableStatus, /Modal/i);
+});
+
+test('uploadPcmChunk transmits audio chunk headers and returns idempotent acceptance', async () => {
+  const originalFetch = globalThis.fetch;
+  let captured;
+  globalThis.fetch = async (url, options) => {
+    captured = { url, options };
+    return new Response(JSON.stringify({ accepted: true, idempotent: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  };
+
+  try {
+    const api = new CoachApi('https://api.example');
+    const bytes = new Uint8Array([0, 1, 2, 3]);
+    const res = await api.uploadPcmChunk('sess-42', 3, 16000, 1, bytes);
+    assert.deepEqual(res, { accepted: true, idempotent: true });
+    assert.equal(captured.url, 'https://api.example/api/coaching/sessions/sess-42/audio/chunks');
+    assert.equal(captured.options.method, 'POST');
+    assert.equal(captured.options.headers['X-Audio-Sequence'], '3');
+    assert.equal(captured.options.headers['X-Sample-Rate'], '16000');
+    assert.equal(captured.options.headers['X-Channels'], '1');
+    assert.equal(captured.options.headers['Content-Type'], 'application/octet-stream');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

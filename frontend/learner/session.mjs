@@ -50,21 +50,6 @@ export class LearnerSession {
     active.stream.getTracks().forEach(track => track.stop());
     this.renderStatus('Pinoproseso ang session.');
     const result = await this.api.finalizeSession(active.session.id);
-    if (result.status === 'pending_manual_inference' && result.inference_job_id && typeof this.api.runInferenceOnModal === 'function') {
-      this.renderStatus('Pinoproseso sa private Modal T4…');
-      try {
-        const modalResult = await this.api.runInferenceOnModal(result.inference_job_id);
-        const finalStatus = modalResult.status ?? 'review_ready';
-        const message = modalResult.review_items !== undefined
-          ? `Modal complete: ${modalResult.review_items} review item(s) ang handa para sa review.`
-          : renderSessionStatus(finalStatus);
-        this.renderStatus(message);
-        return { ...result, ...modalResult, status: finalStatus };
-      } catch {
-        this.renderStatus('Naka-save ang audio. Hindi natapos ang automatic Modal inference; handa para sa manual review o retry.');
-        return result;
-      }
-    }
     this.renderStatus(renderSessionStatus(result.status));
     return result;
   }
@@ -73,7 +58,7 @@ export class LearnerSession {
 export function renderSessionStatus(status) {
   const labels = {
     review_ready: 'Handa na para sa human review.',
-    pending_manual_inference: 'Naka-save ang audio. Naka-standby para sa private Modal T4 inference o review.',
+    pending_manual_inference: 'Natanggap na ng backend. Pinoproseso ang inference sa background.',
     exported: 'Na-export na ang bundle para sa manual fallback processing.',
     analysis_unavailable: 'Hindi natapos ang model processing bago ang expiry; nilinis na ang temporary audio.',
     model_unavailable: 'Hindi available ang Modal model worker. Ligtas na itinigil ang processing.',

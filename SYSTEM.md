@@ -15,7 +15,7 @@ Ang transcript disagreement ay review signal lamang. Hindi ito automatic pronunc
 - Temporary full-session audio cleanup pagkatapos ng successful import o 24-hour bounded expiry.
 - Browser learner/annotator shell at independent PCM `AudioWorklet` recorder.
 - Secure manual inference ZIP export at validated, idempotent result import.
-- Private Modal T4 endpoint is the primary MVP GPU boundary. Rust sends one claimed, bounded inference bundle with server-held proxy credentials and validates the returned result before import.
+- Private Modal T4 endpoint is the primary MVP GPU boundary. After finalize acknowledgment, Rust spawns a background task that claims one bounded inference bundle, sends it with server-held proxy credentials, and validates the returned result before import. No auto-retry.
 - Optional interactive Colab transfer remains a manual fallback with one short-lived, job-scoped ticket for exactly one HTTPS export then one import.
 - Native Rust backend deployment contract para sa Lightsail. Zero-charge use requires account-specific active credit confirmation.
 - AWS GPU deployment and lifecycle scaling are post-MVP TODO documentation only.
@@ -35,14 +35,15 @@ Ang transcript disagreement ay review signal lamang. Hindi ito automatic pronunc
 ```text
 Browser learner
   ├─ shared microphone → Agora RTC
-  └─ PCM AudioWorklet → Rust API temporary chunks
+  ├─ PCM AudioWorklet → Rust API idempotent chunks
+  └─ finalize → Rust API acknowledged response (fire-and-forget)
 
 Agora timestamped transcript events → Rust API
 
 Rust API
   ├─ auth + roles + SQLite
   ├─ private audio preprocessing
-  ├─ one claimed ZIP job → private Modal T4 → validated JSON import
+  ├─ finalize → immediate acknowledgment → background Modal T4 inference
   ├─ fallback authorized ZIP export → interactive Colab → validated JSON import
   ├─ optional one-shot HTTPS POC transfer uses one active job ticket
   └─ comparison → sentence clips → annotation queue
