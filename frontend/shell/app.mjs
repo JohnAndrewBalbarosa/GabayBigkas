@@ -84,10 +84,7 @@ function clearAccount(message) {
 
 function showPublicPage(page) {
   for (const id of ['home', 'about', 'login', 'signup']) {
-    const el = document.querySelector(`#${id}`);
-    const isTarget = id === page;
-    el.hidden = !isTarget;
-    if (isTarget) animateSection(el);
+    document.querySelector(`#${id}`).hidden = id !== page;
   }
   document.querySelectorAll('[data-public-page]').forEach(btn => {
     btn.classList.toggle('active-nav', btn.dataset.publicPage === page);
@@ -102,15 +99,9 @@ async function showWorkspace(role) {
   }
   for (const id of ['home', 'about', 'login', 'signup']) document.querySelector(`#${id}`).hidden = true;
   document.querySelectorAll('[data-public-page]').forEach(btn => btn.classList.remove('active-nav'));
-  const learnerEl = document.querySelector('#learner');
-  const annotatorEl = document.querySelector('#annotator');
-  learnerEl.hidden = role !== 'learner';
-  annotatorEl.hidden = role !== 'annotator';
-  if (role === 'learner') animateSection(learnerEl);
-  if (role === 'annotator') {
-    animateSection(annotatorEl);
-    await refreshAnnotatorWorkspace();
-  }
+  document.querySelector('#learner').hidden = role !== 'learner';
+  document.querySelector('#annotator').hidden = role !== 'annotator';
+  if (role === 'annotator') await refreshAnnotatorWorkspace();
 }
 
 function hideWorkspaces() {
@@ -129,9 +120,6 @@ function bindLearnerSession() {
       start.disabled = true;
       finish.disabled = false;
       learnerStatus.classList.add('is-recording');
-      if (globalThis.gsap) {
-        globalThis.gsap.fromTo(learnerStatus, { scale: 0.94 }, { scale: 1, duration: 0.25, ease: 'back.out(1.5)' });
-      }
     } catch (error) {
       learnerStatus.textContent = error.message;
     }
@@ -142,22 +130,12 @@ function bindLearnerSession() {
     try {
       const result = await learner.finish();
       renderLearnerFeedback(document, result.feedback ?? null);
-      if (globalThis.gsap) {
-        globalThis.gsap.from('.feedback-container', { opacity: 0, y: 12, duration: 0.35, ease: 'power2.out' });
-      }
     } catch (error) {
       learnerStatus.textContent = error.message;
     } finally {
       start.disabled = false;
     }
   });
-}
-
-function animateSection(el) {
-  if (!el || el.hidden) return;
-  if (globalThis.gsap) {
-    globalThis.gsap.fromTo(el, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.28, ease: 'power2.out' });
-  }
 }
 
 async function refreshAnnotatorWorkspace() {
