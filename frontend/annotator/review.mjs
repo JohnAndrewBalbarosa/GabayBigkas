@@ -7,13 +7,18 @@ export async function renderAnnotationQueue(api, container) {
 function annotationCard(api, item) {
   const card = document.createElement('article');
   card.className = 'review-card';
-  card.innerHTML = `
-    <p><strong>Target sentence:</strong> ${escapeHtml(item.expected_text)}</p>
-    <p><strong>Agora:</strong> ${escapeHtml(item.agora_text)}</p>
-    <p><strong>BuzzASR:</strong> ${escapeHtml(item.buzz_text)}</p>
-    <audio controls preload="none" src="/api/annotation/items/${encodeURIComponent(item.id)}/audio"></audio>
-    <div class="actions"></div>`;
-  const actions = card.querySelector('.actions');
+  card.append(
+    evidenceLine('Target sentence', item.expected_text),
+    evidenceLine('Agora', item.agora_text),
+    evidenceLine('BuzzASR', item.buzz_text),
+  );
+  const audio = document.createElement('audio');
+  audio.controls = true;
+  audio.preload = 'none';
+  audio.src = `/api/annotation/items/${encodeURIComponent(item.id)}/audio`;
+  const actions = document.createElement('div');
+  actions.className = 'actions';
+  card.append(audio, actions);
   for (const decision of ['confirmed_transcript', 'insufficient_evidence', 'out_of_scope_language']) {
     const button = document.createElement('button');
     button.textContent = decision.replaceAll('_', ' ');
@@ -26,8 +31,10 @@ function annotationCard(api, item) {
   return card;
 }
 
-function escapeHtml(value) {
-  const node = document.createElement('span');
-  node.textContent = value;
-  return node.innerHTML;
+function evidenceLine(label, value) {
+  const line = document.createElement('p');
+  const heading = document.createElement('strong');
+  heading.textContent = `${label}: `;
+  line.append(heading, document.createTextNode(value));
+  return line;
 }

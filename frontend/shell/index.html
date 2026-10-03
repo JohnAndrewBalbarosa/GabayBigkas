@@ -4,35 +4,82 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>GabayBigkas</title>
-  <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-  <header><h1>GabayBigkas</h1><p>Reviewable na ebidensiya para sa English practice</p></header>
-  <nav>
-    <button data-view="learner">Learner</button>
-    <button data-view="annotator">Annotator</button>
-    <a href="http://127.0.0.1:4317" target="_blank" rel="noreferrer">Agora Lab</a>
-  </nav>
+  <header>
+    <h1>GabayBigkas</h1>
+    <p>English pronunciation practice na may learner at annotator review.</p>
+    <nav aria-label="Public pages">
+      <button type="button" data-public-page="home">Home</button>
+      <button type="button" data-public-page="about">About us</button>
+      <button type="button" data-public-page="login">Log in</button>
+      <button type="button" data-public-page="signup">Sign up</button>
+    </nav>
+    <div id="account" hidden>
+      <p id="account-profile"></p>
+      <p>Ang secure server session ay may hanggang 8 oras na TTL.</p>
+      <button id="logout" type="button">Log out</button>
+    </div>
+  </header>
   <main>
-    <section id="login">
-      <h2>Local account</h2>
-      <form><input name="email" type="email" placeholder="Email" required><input name="password" type="password" placeholder="Password" required><button>Mag-sign in</button></form>
+    <p id="page-status" role="status"></p>
+    <section id="home">
+      <h2>Home</h2>
+      <p>Magbasa ng maikling English prompt, i-record ang boses, at hintayin ang reviewed pronunciation evidence.</p>
+      <p>Proof of concept ito. Isang consented session lamang ang pinoproseso sa bawat test.</p>
     </section>
+    <section id="about" hidden>
+      <h2>About us</h2>
+      <p>Tinutulungan ng GabayBigkas ang learner na makita ang mga salitang kailangang sanayin gamit ang human-reviewable evidence.</p>
+    </section>
+    <section id="login" hidden>
+      <h2>Log in</h2>
+      <form>
+        <label>Email <input name="email" type="email" autocomplete="username" required></label>
+        <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
+        <button type="submit">Log in</button>
+      </form>
+      <p id="login-status" role="status"></p>
+    </section>
+    <section id="signup" hidden>
+      <h2>Sign up</h2>
+      <p>Hindi pa available ang public sign up sa proof of concept. Admin-configured test accounts lamang muna ang puwedeng gamitin.</p>
+    </section>
+    <nav id="workspace-navigation" aria-label="Account workspace" hidden>
+      <button type="button" data-workspace="learner">Learner</button>
+      <button type="button" data-workspace="annotator">Annotator</button>
+    </nav>
     <section id="learner" hidden>
-      <h2>Guided learner session</h2>
-      <p id="learner-status">Handa.</p>
-      <label><input id="adult-consent" type="checkbox"> Kinukumpirma kong ako ay adult at pumapayag akong gamitin ang recording para sa MVP analysis.</label>
-      <button id="start-session">Simulan ang consented session</button>
-      <button id="finish-session" disabled>Tapusin at iproseso</button>
+      <h2>Learner practice</h2>
+      <h3>Basahing prompt</h3>
+      <p id="reading-prompt">Fifty people think clearly.</p>
+      <p id="learner-status" role="status">Handa.</p>
+      <label><input id="adult-consent" type="checkbox"> Kinukumpirma kong adult ako at pumapayag akong gamitin ang recording para sa MVP analysis.</label>
+      <button id="start-session" type="button">Simulan ang session</button>
+      <button id="finish-session" type="button" disabled>Tapusin at iproseso</button>
+      <section aria-labelledby="practice-heading">
+        <h3 id="practice-heading">Mga salitang kailangang sanayin</h3>
+        <div id="practice-words"></div>
+      </section>
+      <section aria-labelledby="coach-heading">
+        <h3 id="coach-heading">AI coach response</h3>
+        <p id="ai-coach-response"></p>
+      </section>
+      <section aria-labelledby="resources-heading">
+        <h3 id="resources-heading">YouTube practice resources</h3>
+        <div id="youtube-resources"></div>
+      </section>
     </section>
     <section id="annotator" hidden>
-      <h2>Manual Colab inference</h2>
-      <p>Mag-download ng bounded bundle, iproseso ito interactively sa approved Colab notebook, saka i-import ang result JSON.</p>
+      <h2>Annotator workspace</h2>
+      <h3>Private Modal inference</h3>
+      <p>Magpatakbo ng isang bounded job sa private Modal T4 endpoint. Manual Colab export ay fallback lamang.</p>
       <div id="inference-jobs"></div>
       <input id="inference-result" type="file" accept="application/json,.json">
-      <button id="import-inference-result">I-import ang result JSON</button>
-      <p id="inference-status"></p>
-      <h2>Mga kailangang i-review</h2><div id="annotation-queue"></div>
+      <button id="import-inference-result" type="button">I-import ang result JSON</button>
+      <p id="inference-status" role="status"></p>
+      <h3>Mga kailangang i-review</h3>
+      <div id="annotation-queue"></div>
     </section>
   </main>
   <script type="module" src="./app.js"></script>

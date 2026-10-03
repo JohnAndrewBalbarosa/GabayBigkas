@@ -63,6 +63,12 @@ export class CoachApi {
     });
   }
 
+  async runInferenceOnModal(jobId) {
+    return this.#json(`/api/inference/jobs/${encodeURIComponent(jobId)}/modal-run`, {
+      method: 'POST',
+    });
+  }
+
   async importInferenceResult(jobId, result) {
     return this.#json(`/api/inference/jobs/${encodeURIComponent(jobId)}/import`, {
       method: 'POST',
