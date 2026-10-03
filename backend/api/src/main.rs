@@ -3,6 +3,7 @@ use std::{env, sync::Arc};
 use agora_coach_api::{
     AppState,
     auth::LoginLimiter,
+    coach_feedback::CoachFeedbackService,
     config::Config,
     inference_bundle::{InferenceBundleService, run_expired_job_cleanup},
     modal_inference::ModalInferenceClient,
@@ -25,10 +26,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let inference_bundles = InferenceBundleService::new(config.private_audio_root.clone());
     let modal_inference = ModalInferenceClient::from_config(&config)
         .map_err(|message| std::io::Error::new(std::io::ErrorKind::InvalidInput, message))?;
+    let coach_feedback = CoachFeedbackService::from_config(&config)
+        .map_err(|message| std::io::Error::new(std::io::ErrorKind::InvalidInput, message))?;
     let state = AppState {
         login_limiter: LoginLimiter::default(),
         inference_bundles: inference_bundles.clone(),
         modal_inference,
+        coach_feedback,
         poc_access: Default::default(),
         store: store.clone(),
         config: config.clone(),

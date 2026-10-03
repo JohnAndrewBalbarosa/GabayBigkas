@@ -1,5 +1,6 @@
 pub mod audio;
 pub mod auth;
+pub mod coach_feedback;
 pub mod comparison;
 pub mod config;
 pub mod error;
@@ -12,6 +13,7 @@ pub mod store;
 
 use std::sync::Arc;
 
+use coach_feedback::CoachFeedbackService;
 use config::Config;
 use inference_bundle::InferenceBundleService;
 use modal_inference::ModalInferenceClient;
@@ -23,6 +25,7 @@ pub struct AppState {
     pub login_limiter: auth::LoginLimiter,
     pub inference_bundles: InferenceBundleService,
     pub modal_inference: Option<ModalInferenceClient>,
+    pub coach_feedback: Option<CoachFeedbackService>,
     pub poc_access: poc_access::PocAccess,
     pub store: Arc<Store>,
 }

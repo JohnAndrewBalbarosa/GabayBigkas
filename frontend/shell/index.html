@@ -88,23 +88,68 @@
     <!-- ABOUT SECTION -->
     <section id="about" class="page-section" hidden>
       <div class="section-header">
-        <p class="eyebrow">OUR MISSION</p>
-        <h2>About GabayBigkas</h2>
+        <p class="eyebrow">YOUR VOICE, YOUR GUIDE</p>
+        <h2>Practice That Listens Back</h2>
+        <p class="section-desc">An AI-guided English-speaking experience that turns live voice into immediate, repeatable practice.</p>
       </div>
-      <p>
-        GabayBigkas is a local-first English learning lab built to empower non-native English speakers.
-        Traditional automated pronunciation tools often give ambiguous percentage scores without actionable diagnostic guidance.
-      </p>
-      <p>
-        Our philosophy is evidence-first: transcript disagreements are treated as review signals rather than harsh verdicts.
-        Learners get human-level review insights, verified phoneme feedback, and focused multimedia practice materials.
-      </p>
+
+      <div class="about-grid">
+        <div class="about-card">
+          <span class="step-num">01</span>
+          <h3>The Challenge</h3>
+          <p>Every learner needs feedback, but teachers in large classrooms cannot hear every attempt. When feedback is delayed, hesitation speaks first and learners miss chances to practice.</p>
+        </div>
+
+        <div class="about-card">
+          <span class="step-num">02</span>
+          <h3>Beyond Generic Transcripts</h3>
+          <p>Ordinary speech recognition merely types out what it heard without turning uncertainty into guidance. GabayBigkas treats speech differences as diagnostic signals, not failure.</p>
+        </div>
+
+        <div class="about-card">
+          <span class="step-num">03</span>
+          <h3>Every Voice Deserves A Clearer Next Try</h3>
+          <p>By pairing live Agora voice streaming with fine-tuned acoustic comparison, learners receive targeted guidance and retry immediately until both engines agree.</p>
+        </div>
+      </div>
+
+      <div class="learning-loop-box">
+        <h4>The 5-Step Learning Loop</h4>
+        <div class="loop-flow">
+          <div class="loop-step">
+            <strong>1. Prompt</strong>
+            <span>Curated sentence prompt aligned with learning benchmarks</span>
+          </div>
+          <div class="loop-step">
+            <strong>2. Speak</strong>
+            <span>Live voice carried via Agora WebRTC with high-fidelity capture</span>
+          </div>
+          <div class="loop-step">
+            <strong>3. Second Listen</strong>
+            <span>Acoustic model tuned for Philippine English speech contexts</span>
+          </div>
+          <div class="loop-step">
+            <strong>4. Deterministic Diff</strong>
+            <span>Pinpoints exact words and phonemes with transcription differences</span>
+          </div>
+          <div class="loop-step">
+            <strong>5. Guided Retry</strong>
+            <span>Targeted pronunciation tips and video lessons for instant re-attempt</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="quote-callout">
+        <p class="quote-text">&ldquo;Disagreement drives the next practice step. Agreement is what we audit.&rdquo;</p>
+        <span class="quote-author">&mdash; GabayBigkas Design Philosophy</span>
+      </div>
+
       <div class="spec-highlight">
-        <h4>Architecture Highlights</h4>
+        <h4>System Trust &amp; Safety</h4>
         <ul>
-          <li><strong>Local-First &amp; Privacy-Preserving:</strong> Audio recordings are strictly duration-bounded and processed only with adult consent.</li>
-          <li><strong>Zero Cloud Audio Retention:</strong> Temporary session chunks are securely purged post-analysis.</li>
-          <li><strong>Standard Axum &amp; Rust Engine:</strong> High-performance audio preprocessing and idempotent event synchronization.</li>
+          <li><strong>Zero Cloud Audio Retention:</strong> Audio recordings are strictly duration-bounded and processed only with adult consent. Temporary session audio is cleaned up immediately post-analysis.</li>
+          <li><strong>Traceable Human Review:</strong> Reviewers and educators audit agreement and edge cases through a dedicated queue.</li>
+          <li><strong>Native High-Performance Core:</strong> Rust Axum backend with idempotent event handling and server-held proxy security.</li>
         </ul>
       </div>
     </section>
@@ -233,13 +278,9 @@
         </ul>
       </div>
 
-      <div class="footer-col status-col">
-        <h4>System Status</h4>
-        <div class="system-status-pill">
-          <span class="status-dot online"></span>
-          <span>Service Operational</span>
-        </div>
-        <p class="footer-note">Proof of Concept trial. Local-first audio processing under strict adult consent.</p>
+      <div class="footer-col safety-col">
+        <h4>Privacy &amp; Safety</h4>
+        <p class="footer-note">Proof of Concept trial. Local-first audio processing under strict adult consent. Voice recordings are never retained without explicit user authorization.</p>
       </div>
     </div>
 

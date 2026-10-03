@@ -42,6 +42,20 @@ pub struct AudioChunk {
     pub path: String,
 }
 
+#[derive(Clone, Debug)]
+pub struct CoachFeedbackRecord {
+    pub agent_id: String,
+    pub coach_message: String,
+    pub youtube_title: String,
+    pub youtube_video_id: String,
+    pub youtube_url: String,
+}
+
+pub enum CoachFeedbackClaim {
+    Generate,
+    Idempotent(CoachFeedbackRecord),
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct CoachingSession {
     pub id: String,
@@ -484,15 +498,114 @@ impl Store {
     }
 
     pub fn add_audio_chunk(&self, session_id: &str, chunk: &AudioChunk) -> Result<bool, ApiError> {
-        let rows = self.connection
-            .lock()
-            .map_err(|_| ApiError::Internal)?
-            .execute(
-                "INSERT OR IGNORE INTO audio_chunks(session_id,sequence,sample_rate,channels,path,created_at) VALUES(?1,?2,?3,?4,?5,?6)",
-                params![session_id, chunk.sequence, chunk.sample_rate, chunk.channels, chunk.path, now()],
+        let connection = self.connection.lock().map_err(|_| ApiError::Internal)?;
+        let existing = connection
+            .query_row(
+                "SELECT sample_rate,channels,path FROM audio_chunks WHERE session_id=?1 AND sequence=?2",
+                params![session_id, chunk.sequence],
+                |row| Ok((row.get::<_, u32>(0)?, row.get::<_, u16>(1)?, row.get::<_, String>(2)?)),
             )
-            .map_err(|error| -> ApiError { error.into() })?;
-        Ok(rows == 0)
+            .optional()?;
+        if let Some((sample_rate, channels, path)) = existing {
+            if sample_rate == chunk.sample_rate && channels == chunk.channels && path == chunk.path
+            {
+                return Ok(true);
+            }
+            return Err(ApiError::Conflict(
+                "audio sequence already contains different data".to_owned(),
+            ));
+        }
+        connection.execute(
+            "INSERT INTO audio_chunks(session_id,sequence,sample_rate,channels,path,created_at) VALUES(?1,?2,?3,?4,?5,?6)",
+            params![session_id, chunk.sequence, chunk.sample_rate, chunk.channels, chunk.path, now()],
+        )?;
+        Ok(false)
+    }
+
+    pub fn claim_coach_feedback(
+        &self,
+        session_id: &str,
+        agent_id: &str,
+    ) -> Result<CoachFeedbackClaim, ApiError> {
+        let mut connection = self.connection.lock().map_err(|_| ApiError::Internal)?;
+        let transaction = connection.transaction()?;
+        let existing = transaction
+            .query_row(
+                "SELECT agent_id,status,coach_message,youtube_title,youtube_video_id,youtube_url FROM coach_feedback WHERE session_id=?1",
+                [session_id],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?, row.get::<_, String>(1)?,
+                        row.get::<_, Option<String>>(2)?, row.get::<_, Option<String>>(3)?,
+                        row.get::<_, Option<String>>(4)?, row.get::<_, Option<String>>(5)?,
+                    ))
+                },
+            )
+            .optional()?;
+        if let Some((stored_agent, status, message, title, video_id, url)) = existing {
+            if stored_agent != agent_id {
+                return Err(ApiError::Conflict(
+                    "session is already linked to a different Agora agent".to_owned(),
+                ));
+            }
+            if status == "completed" {
+                return Ok(CoachFeedbackClaim::Idempotent(CoachFeedbackRecord {
+                    agent_id: stored_agent,
+                    coach_message: message.ok_or(ApiError::Internal)?,
+                    youtube_title: title.ok_or(ApiError::Internal)?,
+                    youtube_video_id: video_id.ok_or(ApiError::Internal)?,
+                    youtube_url: url.ok_or(ApiError::Internal)?,
+                }));
+            }
+            return Err(ApiError::Conflict(
+                "coach feedback generation is already in progress".to_owned(),
+            ));
+        }
+        transaction.execute(
+            "INSERT INTO coach_feedback(session_id,agent_id,status,created_at,updated_at) VALUES(?1,?2,'pending',?3,?3)",
+            params![session_id, agent_id, now()],
+        )?;
+        transaction.commit()?;
+        Ok(CoachFeedbackClaim::Generate)
+    }
+
+    pub fn complete_coach_feedback(
+        &self,
+        session_id: &str,
+        agent_id: &str,
+        coach_message: &str,
+        youtube_title: &str,
+        youtube_video_id: &str,
+        youtube_url: &str,
+    ) -> Result<CoachFeedbackRecord, ApiError> {
+        let rows = self.connection.lock().map_err(|_| ApiError::Internal)?.execute(
+            "UPDATE coach_feedback SET status='completed',coach_message=?3,youtube_title=?4,youtube_video_id=?5,youtube_url=?6,updated_at=?7 WHERE session_id=?1 AND agent_id=?2 AND status='pending'",
+            params![session_id, agent_id, coach_message, youtube_title, youtube_video_id, youtube_url, now()],
+        )?;
+        if rows != 1 {
+            return Err(ApiError::Conflict(
+                "coach feedback state changed".to_owned(),
+            ));
+        }
+        Ok(CoachFeedbackRecord {
+            agent_id: agent_id.to_owned(),
+            coach_message: coach_message.to_owned(),
+            youtube_title: youtube_title.to_owned(),
+            youtube_video_id: youtube_video_id.to_owned(),
+            youtube_url: youtube_url.to_owned(),
+        })
+    }
+
+    pub fn release_coach_feedback_claim(
+        &self,
+        session_id: &str,
+        agent_id: &str,
+    ) -> Result<(), ApiError> {
+        self.connection.lock().map_err(|_| ApiError::Internal)?.execute(
+            "DELETE FROM coach_feedback WHERE session_id=?1 AND agent_id=?2 AND status='pending'",
+            params![session_id, agent_id],
+        )?;
+        Ok(())
     }
 
     pub fn audio_chunks(&self, session_id: &str) -> Result<Vec<AudioChunk>, ApiError> {
@@ -664,6 +777,7 @@ CREATE TABLE IF NOT EXISTS transcript_events(session_id TEXT NOT NULL REFERENCES
 CREATE TABLE IF NOT EXISTS inference_jobs(id TEXT PRIMARY KEY,session_id TEXT NOT NULL UNIQUE REFERENCES coaching_sessions(id),audio_path TEXT NOT NULL,audio_sha256 TEXT NOT NULL,audio_bytes INTEGER NOT NULL,sample_rate INTEGER NOT NULL,channels INTEGER NOT NULL,duration_ms INTEGER NOT NULL,model_id TEXT NOT NULL,model_revision TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('pending_manual_inference','exported','importing','completed','analysis_unavailable')),result_sha256 TEXT,created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,updated_at INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS inference_jobs_status_expiry_idx ON inference_jobs(status,expires_at);
 CREATE TABLE IF NOT EXISTS modal_inference_claims(job_id TEXT PRIMARY KEY REFERENCES inference_jobs(id) ON DELETE CASCADE,claimed_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS coach_feedback(session_id TEXT PRIMARY KEY REFERENCES coaching_sessions(id),agent_id TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('pending','completed')),coach_message TEXT,youtube_title TEXT,youtube_video_id TEXT,youtube_url TEXT,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS annotation_items(id TEXT PRIMARY KEY,session_id TEXT NOT NULL REFERENCES coaching_sessions(id),expected_text TEXT NOT NULL,agora_text TEXT NOT NULL,buzz_text TEXT NOT NULL,sentence_start_ms INTEGER NOT NULL,sentence_end_ms INTEGER NOT NULL,focus_start_ms INTEGER NOT NULL,focus_end_ms INTEGER NOT NULL,clip_key TEXT NOT NULL,status TEXT NOT NULL,decision TEXT,corrected_text TEXT,notes TEXT,annotator_id TEXT REFERENCES users(id),reviewed_at INTEGER,created_at INTEGER NOT NULL);
 "#;
 

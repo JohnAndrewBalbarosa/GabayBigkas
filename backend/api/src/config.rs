@@ -11,6 +11,9 @@ pub struct Config {
     pub modal_inference_url: Option<String>,
     pub modal_token_id: Option<String>,
     pub modal_token_secret: Option<String>,
+    pub agora_app_id: Option<String>,
+    pub agora_convo_token: Option<String>,
+    pub youtube_api_key: Option<String>,
 }
 
 impl Config {
@@ -35,6 +38,9 @@ impl Config {
             modal_inference_url: optional_env("COACH_MODAL_INFERENCE_URL"),
             modal_token_id: optional_env("COACH_MODAL_TOKEN_ID"),
             modal_token_secret: optional_env("COACH_MODAL_TOKEN_SECRET"),
+            agora_app_id: optional_env("AGORA_APP_ID"),
+            agora_convo_token: optional_env("AGORA_CONVO_TOKEN"),
+            youtube_api_key: optional_env("YOUTUBE_API_KEY"),
         }
     }
 
@@ -50,6 +56,9 @@ impl Config {
             modal_inference_url: None,
             modal_token_id: None,
             modal_token_secret: None,
+            agora_app_id: None,
+            agora_convo_token: None,
+            youtube_api_key: None,
         }
     }
 }
