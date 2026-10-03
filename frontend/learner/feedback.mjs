@@ -22,16 +22,16 @@ export function renderLearnerFeedback(root, payload) {
   words.replaceChildren();
   resources.replaceChildren();
   if (!feedback) {
-    words.textContent = 'Wala pang reviewed word result.';
-    coach.textContent = 'Wala pang validated AI coach response.';
-    resources.textContent = 'Wala pang validated YouTube resource.';
+    words.textContent = 'No reviewed word results yet.';
+    coach.textContent = 'No validated AI coach feedback available yet.';
+    resources.textContent = 'No recommended practice lessons available yet.';
     return;
   }
   words.replaceChildren(...feedback.words.map(renderPracticeWord));
-  if (!feedback.words.length) words.textContent = 'Walang salitang minarkahang kailangan pang sanayin.';
+  if (!feedback.words.length) words.textContent = 'No words marked for additional practice.';
   coach.textContent = feedback.coachMessage;
   resources.replaceChildren(...feedback.resources.map(renderYoutubeResource));
-  if (!feedback.resources.length) resources.textContent = 'Walang inirekomendang YouTube resource.';
+  if (!feedback.resources.length) resources.textContent = 'No recommended practice lessons.';
 }
 
 function normalizePracticeWord(item) {
@@ -49,9 +49,18 @@ function isBoundedText(value, maximum) {
 }
 
 function renderPracticeWord(item) {
-  const paragraph = document.createElement('p');
-  paragraph.textContent = `${item.word} — ${item.reason} Tip: ${item.pronunciationTip}`;
-  return paragraph;
+  const card = document.createElement('div');
+  card.className = 'practice-word-card';
+  const heading = document.createElement('strong');
+  heading.textContent = item.word;
+  const reason = document.createElement('span');
+  reason.className = 'word-reason';
+  reason.textContent = item.reason;
+  const tip = document.createElement('p');
+  tip.className = 'word-tip';
+  tip.textContent = `Tip: ${item.pronunciationTip}`;
+  card.append(heading, reason, tip);
+  return card;
 }
 
 function renderYoutubeResource(item) {

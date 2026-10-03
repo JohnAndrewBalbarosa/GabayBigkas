@@ -108,8 +108,8 @@ test('LearnerSession finishes with fire-and-forget finalize and does not trigger
   assert.deepEqual(calls, [['finalize', 'sess-1']]);
   assert.equal(result.status, 'pending_manual_inference');
   assert.equal(result.acknowledged, true);
-  assert.ok(statuses.includes('Pinoproseso ang session.'));
-  assert.ok(statuses.some(s => s.includes('Natanggap na ng backend')));
+  assert.ok(statuses.includes('Processing session audio...'));
+  assert.ok(statuses.some(s => s.includes('Audio received')));
 });
 
 test('renderSessionStatus reflects backend-managed inference without frontend Modal assumptions', () => {

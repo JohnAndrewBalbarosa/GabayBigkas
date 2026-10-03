@@ -15,7 +15,8 @@ test('production frontend uses credentialed sessions and an injected API origin'
   assert.match(app, /api\.logout\(\)/);
   assert.doesNotMatch(app, /localStorage|sessionStorage/);
   assert.match(build, /COACH_PUBLIC_API_BASE_URL/);
-  assert.doesNotMatch(html, /stylesheet|style=/);
+  assert.doesNotMatch(html, /style=/);
+  assert.match(html, /rel="stylesheet"/);
 });
 
 test('deployment artifacts pin the public IP and preserve a loopback backend', async () => {

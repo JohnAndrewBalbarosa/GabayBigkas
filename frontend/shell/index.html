@@ -3,83 +3,101 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>GabayBigkas</title>
+  <title>GabayBigkas — Guided English Learning</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.7/dist/gsap.min.js"></script>
 </head>
 <body>
   <header>
-    <h1>GabayBigkas</h1>
-    <p>English pronunciation practice na may learner at annotator review.</p>
+    <div class="brand-wrap">
+      <h1>Gabay<span>Bigkas</span></h1>
+      <p>Guided English practice with learner and annotator review</p>
+    </div>
     <nav aria-label="Public pages">
       <button type="button" data-public-page="home">Home</button>
-      <button type="button" data-public-page="about">About us</button>
+      <button type="button" data-public-page="about">About</button>
       <button type="button" data-public-page="login">Log in</button>
       <button type="button" data-public-page="signup">Sign up</button>
     </nav>
     <div id="account" hidden>
-      <p id="account-profile"></p>
-      <p>Ang secure server session ay may hanggang 8 oras na TTL.</p>
+      <span id="account-profile"></span>
+      <p>Session active (8h TTL)</p>
       <button id="logout" type="button">Log out</button>
     </div>
   </header>
   <main>
     <p id="page-status" role="status"></p>
     <section id="home">
-      <h2>Home</h2>
-      <p>Magbasa ng maikling English prompt, i-record ang boses, at hintayin ang reviewed pronunciation evidence.</p>
-      <p>Proof of concept ito. Isang consented session lamang ang pinoproseso sa bawat test.</p>
+      <h2>Welcome to GabayBigkas</h2>
+      <p>Read an English sentence prompt, record your pronunciation, and receive review-backed coaching feedback.</p>
+      <p>This is a proof of concept. One consented audio session is processed per test run.</p>
     </section>
     <section id="about" hidden>
-      <h2>About us</h2>
-      <p>Tinutulungan ng GabayBigkas ang learner na makita ang mga salitang kailangang sanayin gamit ang human-reviewable evidence.</p>
+      <h2>About GabayBigkas</h2>
+      <p>GabayBigkas assists learners in identifying words needing pronunciation focus using sentence-level speech evidence.</p>
+      <p>A dual-engine review model compares timestamped Agora speech events against specialized acoustic model inference.</p>
     </section>
     <section id="login" hidden>
-      <h2>Log in</h2>
+      <h2>Log in to Your Account</h2>
       <form>
-        <label>Email <input name="email" type="email" autocomplete="username" required></label>
-        <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
-        <button type="submit">Log in</button>
+        <label>Email address <input name="email" type="email" autocomplete="username" placeholder="learner@example.test" required></label>
+        <label>Password <input name="password" type="password" autocomplete="current-password" placeholder="••••••••" required></label>
+        <button type="submit" class="primary">Sign in</button>
       </form>
       <p id="login-status" role="status"></p>
     </section>
     <section id="signup" hidden>
-      <h2>Sign up</h2>
-      <p>Hindi pa available ang public sign up sa proof of concept. Admin-configured test accounts lamang muna ang puwedeng gamitin.</p>
+      <h2>Account Registration</h2>
+      <p>Public registration is not available in this proof of concept. Please use an admin-configured trial account to log in.</p>
     </section>
     <nav id="workspace-navigation" aria-label="Account workspace" hidden>
-      <button type="button" data-workspace="learner">Learner</button>
-      <button type="button" data-workspace="annotator">Annotator</button>
+      <button type="button" data-workspace="learner">Learner Practice</button>
+      <button type="button" data-workspace="annotator">Annotator Review</button>
     </nav>
     <section id="learner" hidden>
-      <h2>Learner practice</h2>
-      <p>I-finalize ang consented recording para sa backend processing at human review.</p>
-      <h3>Basahing prompt</h3>
-      <p id="reading-prompt">Fifty people think clearly.</p>
-      <p id="learner-status" role="status">Handa.</p>
-      <label><input id="adult-consent" type="checkbox"> Kinukumpirma kong adult ako at pumapayag akong gamitin ang recording para sa MVP analysis.</label>
-      <button id="start-session" type="button">Simulan ang session</button>
-      <button id="finish-session" type="button" disabled>Tapusin at iproseso</button>
-      <section aria-labelledby="practice-heading">
-        <h3 id="practice-heading">Mga salitang kailangang sanayin</h3>
-        <div id="practice-words"></div>
-      </section>
-      <section aria-labelledby="coach-heading">
-        <h3 id="coach-heading">AI coach response</h3>
-        <p id="ai-coach-response"></p>
-      </section>
-      <section aria-labelledby="resources-heading">
-        <h3 id="resources-heading">YouTube practice resources</h3>
-        <div id="youtube-resources"></div>
-      </section>
+      <h2>Learner Practice Station</h2>
+      <p>Read the prompt below clearly into your microphone, then finalize to process pronunciation evidence.</p>
+      <div class="prompt-card">
+        <p class="eyebrow">Reading Prompt</p>
+        <p id="reading-prompt">Fifty people think clearly.</p>
+      </div>
+      <div>
+        <span id="learner-status" role="status">Ready to record.</span>
+      </div>
+      <label class="consent-box">
+        <input id="adult-consent" type="checkbox">
+        <span>I confirm I am an adult and consent to audio recording for pronunciation analysis.</span>
+      </label>
+      <div class="button-group">
+        <button id="start-session" type="button" class="primary">Start Practice Session</button>
+        <button id="finish-session" type="button" disabled>Finish &amp; Submit Audio</button>
+      </div>
+      <div class="feedback-container">
+        <section aria-labelledby="practice-heading">
+          <h3 id="practice-heading">Words to Practice</h3>
+          <div id="practice-words"></div>
+        </section>
+        <section aria-labelledby="coach-heading">
+          <h3 id="coach-heading">AI Coach Notes</h3>
+          <p id="ai-coach-response"></p>
+        </section>
+        <section aria-labelledby="resources-heading">
+          <h3 id="resources-heading">Recommended Practice Lessons</h3>
+          <div id="youtube-resources"></div>
+        </section>
+      </div>
     </section>
     <section id="annotator" hidden>
-      <h2>Annotator workspace</h2>
-      <h3>Private Modal inference</h3>
-      <p>Magpatakbo ng isang bounded job sa private Modal T4 endpoint. Manual Colab export ay fallback lamang.</p>
+      <h2>Annotator Review Station</h2>
+      <h3>Private Inference Jobs</h3>
+      <p>Run a bounded job against the private Modal T4 endpoint, or use manual Colab export as a fallback.</p>
       <div id="inference-jobs"></div>
-      <input id="inference-result" type="file" accept="application/json,.json">
-      <button id="import-inference-result" type="button">I-import ang result JSON</button>
+      <div class="button-group">
+        <input id="inference-result" type="file" accept="application/json,.json">
+        <button id="import-inference-result" type="button">Import Result JSON</button>
+      </div>
       <p id="inference-status" role="status"></p>
-      <h3>Mga kailangang i-review</h3>
+      <h3>Review Queue</h3>
       <div id="annotation-queue"></div>
     </section>
   </main>

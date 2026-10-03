@@ -1,7 +1,7 @@
 export async function renderAnnotationQueue(api, container) {
   const items = await api.annotationQueue();
   container.replaceChildren(...items.map(item => annotationCard(api, item)));
-  if (!items.length) container.textContent = 'Walang pending review item.';
+  if (!items.length) container.textContent = 'No pending review items.';
 }
 
 function annotationCard(api, item) {

@@ -8,8 +8,8 @@ export class LearnerSession {
   }
 
   async start({ exerciseId, expectedPhrases, adultConsent }) {
-    if (this.active) throw new Error('May active session na. Tapusin muna ito.');
-    if (adultConsent !== true) throw new Error('Para sa MVP, consenting adult lamang ang maaaring mag-record.');
+    if (this.active) throw new Error('A session is already active. Please finish it first.');
+    if (adultConsent !== true) throw new Error('Only consenting adults may record during this trial.');
     const session = await this.api.createSession({
       exercise_id: exerciseId,
       expected_phrases: expectedPhrases,
@@ -28,12 +28,12 @@ export class LearnerSession {
       ),
     });
     this.active = { session, stream, recorder, transcriptSequence: 0 };
-    this.renderStatus('Nagre-record ang session.');
+    this.renderStatus('Recording in progress...');
     return { session, sharedMicrophoneStream: stream };
   }
 
   async ingestAgoraTranscript({ text, startMs, endMs }) {
-    if (!this.active) throw new Error('Walang active session.');
+    if (!this.active) throw new Error('No active session.');
     await this.api.addAgoraTranscript(this.active.session.id, {
       sequence: this.active.transcriptSequence++,
       text,
@@ -43,12 +43,12 @@ export class LearnerSession {
   }
 
   async finish() {
-    if (!this.active) throw new Error('Walang active session.');
+    if (!this.active) throw new Error('No active session.');
     const active = this.active;
     this.active = null;
     await active.recorder.stop();
     active.stream.getTracks().forEach(track => track.stop());
-    this.renderStatus('Pinoproseso ang session.');
+    this.renderStatus('Processing session audio...');
     const result = await this.api.finalizeSession(active.session.id);
     this.renderStatus(renderSessionStatus(result.status));
     return result;
@@ -57,12 +57,12 @@ export class LearnerSession {
 
 export function renderSessionStatus(status) {
   const labels = {
-    review_ready: 'Handa na para sa human review.',
-    pending_manual_inference: 'Natanggap na ng backend. Pinoproseso ang inference sa background.',
-    exported: 'Na-export na ang bundle para sa manual fallback processing.',
-    analysis_unavailable: 'Hindi natapos ang model processing bago ang expiry; nilinis na ang temporary audio.',
-    model_unavailable: 'Hindi available ang Modal model worker. Ligtas na itinigil ang processing.',
-    failed: 'Hindi natapos ang processing. Tingnan ang bounded server error event.',
+    review_ready: 'Analysis complete and ready for human review.',
+    pending_manual_inference: 'Audio received by backend. Background inference in progress.',
+    exported: 'Inference bundle exported for manual processing.',
+    analysis_unavailable: 'Processing timed out before expiry; temporary audio safely cleaned up.',
+    model_unavailable: 'Modal model worker unavailable. Processing safely halted.',
+    failed: 'Processing could not be completed. Check server error log.',
   };
   return labels[status] ?? `Session status: ${status}`;
 }
