@@ -102,7 +102,7 @@ export function setupRtc({ config, api }) {
 }
 
 async function waitForLiveMedia(stream) {
-  const deadline = Date.now() + 2000;
+  const deadline = Date.now() + 5000;
   while (Date.now() < deadline) {
     if (stream.getTracks().length > 0 && stream.getTracks().every(track => track.readyState === 'live')) return;
     await new Promise(resolve => setTimeout(resolve, 25));
