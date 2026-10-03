@@ -139,8 +139,15 @@ fn map_status(status: StatusCode) -> ApiError {
 
 #[cfg(test)]
 mod tests {
-    use super::ModalInferenceClient;
+    use std::sync::{Arc, Mutex};
+
+    use axum::{Json, Router, http::HeaderMap, routing::post};
+    use reqwest::{Client, StatusCode, header::HeaderValue};
+    use serde_json::{Value, json};
+
+    use super::{ModalInferenceClient, map_status};
     use crate::config::Config;
+    use crate::error::ApiError;
 
     #[test]
     fn disabled_modal_does_not_require_credentials() {
@@ -163,5 +170,61 @@ mod tests {
             ModalInferenceClient::from_config(&config).err().unwrap(),
             "COACH_MODAL_INFERENCE_URL must use HTTPS"
         );
+    }
+
+    #[tokio::test]
+    async fn inference_sends_proxy_credentials_and_a_bounded_bundle() {
+        let captured = Arc::new(Mutex::new(None));
+        let request_capture = Arc::clone(&captured);
+        let app = Router::new().route(
+            "/",
+            post(move |headers: HeaderMap, Json(body): Json<Value>| {
+                let request_capture = Arc::clone(&request_capture);
+                async move {
+                    *request_capture.lock().unwrap() = Some((headers, body));
+                    Json(json!({
+                        "schema_version": 1,
+                        "job_id": "job-1",
+                        "audio_sha256": "abc",
+                        "model_id": "BuzzASR/filipino",
+                        "model_revision": "revision",
+                        "generated_at": 1,
+                        "text": "hello",
+                        "segments": [],
+                        "words": []
+                    }))
+                }
+            }),
+        );
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+        let client = ModalInferenceClient {
+            client: Client::new(),
+            endpoint: format!("http://{address}"),
+            token_id: HeaderValue::from_static("wk-test"),
+            token_secret: HeaderValue::from_static("ws-test"),
+        };
+
+        let result = client.infer("job-1", vec![1, 2, 3]).await.unwrap();
+        let (headers, body) = captured.lock().unwrap().take().unwrap();
+        server.abort();
+
+        assert_eq!(result.job_id, "job-1");
+        assert_eq!(headers["Modal-Key"], "wk-test");
+        assert_eq!(headers["Modal-Secret"], "ws-test");
+        assert_eq!(body["bundle_zip_base64"], "AQID");
+    }
+
+    #[test]
+    fn response_statuses_preserve_validation_and_auth_boundaries() {
+        assert!(matches!(
+            map_status(StatusCode::UNPROCESSABLE_ENTITY),
+            ApiError::Invalid(_)
+        ));
+        assert!(matches!(
+            map_status(StatusCode::UNAUTHORIZED),
+            ApiError::ModelUnavailable
+        ));
     }
 }
