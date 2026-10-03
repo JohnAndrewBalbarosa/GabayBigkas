@@ -57,6 +57,12 @@ export class CoachApi {
     return response.blob();
   }
 
+  async createInferencePocTicket(jobId) {
+    return this.#json(`/api/inference/jobs/${encodeURIComponent(jobId)}/poc-ticket`, {
+      method: 'POST',
+    });
+  }
+
   async importInferenceResult(jobId, result) {
     return this.#json(`/api/inference/jobs/${encodeURIComponent(jobId)}/import`, {
       method: 'POST',

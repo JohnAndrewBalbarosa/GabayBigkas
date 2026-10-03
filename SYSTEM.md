@@ -15,6 +15,7 @@ Ang transcript disagreement ay review signal lamang. Hindi ito automatic pronunc
 - Temporary full-session audio cleanup pagkatapos ng successful import o 24-hour bounded expiry.
 - Browser learner/annotator shell at independent PCM `AudioWorklet` recorder.
 - Secure manual inference ZIP export at validated, idempotent result import.
+- Optional interactive Colab POC transfer uses one short-lived, job-scoped ticket for exactly one HTTPS export then one import; only one ticket may be active.
 - Interactive Google Colab Free notebook ang MVP GPU boundary; Python owns only pinned BuzzASR inference.
 - Native Rust backend deployment contract para sa Lightsail. Zero-charge use requires account-specific active credit confirmation.
 - AWS GPU deployment and lifecycle scaling are post-MVP TODO documentation only.
@@ -23,7 +24,7 @@ Ang transcript disagreement ay review signal lamang. Hindi ito automatic pronunc
 ## Not yet runtime-verified
 
 - Live Lightsail deployment and account-specific credit verification.
-- One real interactive Colab export → inference → import run.
+- One real interactive Colab export → inference → import run, manual o one-shot HTTPS mode.
 - Live Agora-to-product transcript forwarding.
 - Same-stream Agora custom-track wiring sa learner shell. Recorder accepts one shared `MediaStream`, pero ang verified lab still owns its existing RTC mic lifecycle.
 - Real-device learner-to-annotator end-to-end run.
@@ -42,6 +43,7 @@ Rust API
   ├─ auth + roles + SQLite
   ├─ private audio preprocessing
   ├─ authorized ZIP export → interactive Colab Free → validated JSON import
+  ├─ optional one-shot HTTPS POC transfer uses one active job ticket
   └─ comparison → sentence clips → annotation queue
 
 Browser annotator → authorized metadata + private clip stream
@@ -167,7 +169,8 @@ npm run verify
 
 ## Safety boundaries
 
-- Colab is interactive only: no tunnel, public server, SSH, unattended worker, or remote-control mechanism.
+- Colab is interactive only: no tunnel, public server, SSH, unattended worker, queue loop, keep-alive, automatic retry, or remote-control mechanism.
+- Direct Colab POC transfer MUST process one job per manual notebook run over HTTPS, then exit; manual ZIP transfer remains the fallback.
 - Lightsail hosts only the native Rust product backend; no GPU or Python model runtime.
 - No model output becomes a pronunciation verdict.
 - MVP data is consenting-adult, fixed guided English only.

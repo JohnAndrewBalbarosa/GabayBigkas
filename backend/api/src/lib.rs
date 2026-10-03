@@ -5,6 +5,7 @@ pub mod config;
 pub mod error;
 pub mod inference_bundle;
 pub mod model;
+pub mod poc_access;
 pub mod routes;
 pub mod store;
 
@@ -19,5 +20,6 @@ pub struct AppState {
     pub config: Config,
     pub login_limiter: auth::LoginLimiter,
     pub inference_bundles: InferenceBundleService,
+    pub poc_access: poc_access::PocAccess,
     pub store: Arc<Store>,
 }

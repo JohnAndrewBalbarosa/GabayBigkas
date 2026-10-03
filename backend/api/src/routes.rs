@@ -56,6 +56,18 @@ pub fn router(state: AppState) -> Router {
         .route("/api/inference/jobs", get(list_inference_jobs))
         .route("/api/inference/jobs/{id}/export", get(export_inference_job))
         .route(
+            "/api/inference/jobs/{id}/poc-ticket",
+            post(issue_inference_poc_ticket),
+        )
+        .route(
+            "/api/inference/jobs/{id}/poc-export",
+            get(export_inference_job_with_poc_ticket),
+        )
+        .route(
+            "/api/inference/jobs/{id}/poc-import",
+            post(import_inference_result_with_poc_ticket),
+        )
+        .route(
             "/api/inference/jobs/{id}/import",
             post(import_inference_result),
         )
@@ -375,6 +387,38 @@ struct InferenceJobSummary {
     expires_at: i64,
 }
 
+#[derive(Serialize)]
+struct PocTicketResponse {
+    job_id: String,
+    token: String,
+    expires_at: i64,
+}
+
+async fn issue_inference_poc_ticket(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+) -> Result<Json<PocTicketResponse>, ApiError> {
+    ensure_allowed_origin(&headers, state.config.allowed_origin.as_deref())?;
+    require_role(&state, &headers, "annotator")?;
+    validate_id(&id)?;
+    let job = state.store.inference_job(&id)?.ok_or(ApiError::NotFound)?;
+    if !matches!(job.status.as_str(), "pending_manual_inference" | "exported") {
+        return Err(ApiError::Conflict(
+            "inference job is not available for Colab POC processing".to_owned(),
+        ));
+    }
+    let issued = state
+        .poc_access
+        .issue(&id, job.expires_at, unix_seconds())?;
+    tracing::info!(event = "inference.poc_ticket.issued", job_id = %id, expires_at = issued.expires_at);
+    Ok(Json(PocTicketResponse {
+        job_id: id,
+        token: issued.token,
+        expires_at: issued.expires_at,
+    }))
+}
+
 async fn list_inference_jobs(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -403,6 +447,29 @@ async fn export_inference_job(
     Path(id): Path<String>,
 ) -> Result<Response, ApiError> {
     require_role(&state, &headers, "annotator")?;
+    export_inference_bundle(&state, id)
+}
+
+async fn export_inference_job_with_poc_ticket(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+) -> Result<Response, ApiError> {
+    let token = bearer_token(&headers)?;
+    state.poc_access.begin_export(&id, token, unix_seconds())?;
+    match export_inference_bundle(&state, id.clone()) {
+        Ok(response) => {
+            state.poc_access.finish_export(&id, token)?;
+            Ok(response)
+        }
+        Err(error) => {
+            state.poc_access.abort_export(&id, token);
+            Err(error)
+        }
+    }
+}
+
+fn export_inference_bundle(state: &AppState, id: String) -> Result<Response, ApiError> {
     validate_id(&id)?;
     let job = state.store.inference_job(&id)?.ok_or(ApiError::NotFound)?;
     if job.expires_at <= unix_seconds() || job.status == "analysis_unavailable" {
@@ -441,6 +508,34 @@ async fn import_inference_result(
 ) -> Result<Json<ImportResponse>, ApiError> {
     ensure_allowed_origin(&headers, state.config.allowed_origin.as_deref())?;
     require_role(&state, &headers, "annotator")?;
+    import_inference_result_for_job(&state, id, result)
+}
+
+async fn import_inference_result_with_poc_ticket(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+    Json(result): Json<ImportedInferenceResult>,
+) -> Result<Json<ImportResponse>, ApiError> {
+    let token = bearer_token(&headers)?;
+    state.poc_access.begin_import(&id, token, unix_seconds())?;
+    match import_inference_result_for_job(&state, id.clone(), result) {
+        Ok(response) => {
+            state.poc_access.finish_import(&id, token)?;
+            Ok(response)
+        }
+        Err(error) => {
+            state.poc_access.abort_import(&id, token);
+            Err(error)
+        }
+    }
+}
+
+fn import_inference_result_for_job(
+    state: &AppState,
+    id: String,
+    result: ImportedInferenceResult,
+) -> Result<Json<ImportResponse>, ApiError> {
     validate_id(&id)?;
     let job = state.store.inference_job(&id)?.ok_or(ApiError::NotFound)?;
     let result_sha256 = state
@@ -458,7 +553,7 @@ async fn import_inference_result(
     let ImportStart::Started(job) = started else {
         unreachable!()
     };
-    let imported = import_result_workflow(&state, &job, &result_sha256, result);
+    let imported = import_result_workflow(state, &job, &result_sha256, result);
     match imported {
         Ok(review_items) => {
             state.inference_bundles.cleanup_audio(&job.audio_path);
@@ -640,6 +735,15 @@ fn require_role(state: &AppState, headers: &HeaderMap, role: &str) -> Result<Pri
         return Err(ApiError::Forbidden);
     }
     Ok(principal)
+}
+
+fn bearer_token(headers: &HeaderMap) -> Result<&str, ApiError> {
+    headers
+        .get(header::AUTHORIZATION)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.strip_prefix("Bearer "))
+        .filter(|token| !token.is_empty())
+        .ok_or(ApiError::Unauthorized)
 }
 
 fn owned_capturing_session(

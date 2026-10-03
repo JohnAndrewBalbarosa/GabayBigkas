@@ -29,5 +29,6 @@ BUZZASR_MODEL_REVISION=fb8cf0d93e2437f8d639549c67733ca9db10e055
 ```
 
 Operator-controlled at interactive ang model access, Hugging Face cache, at CUDA
-runtime. Hindi backend, public endpoint, tunnel, unattended worker, o remote-control
-path ang Colab notebook.
+runtime. Manual ZIP ang fallback; optional ang one-shot HTTPS POC transfer gamit ang
+short-lived single-job ticket. Hindi backend, public endpoint, tunnel, queue loop,
+unattended worker, keep-alive, o remote-control path ang Colab notebook.

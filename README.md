@@ -40,7 +40,7 @@ npm run start:coach   # Product:   http://127.0.0.1:4320
 npm run start:model   # Optional local model-gateway experiment
 ```
 
-Ang product finalization ay gumagawa ng durable `pending_manual_inference` job. Authorized annotators export a bounded ZIP, run the pinned notebook interactively in Colab, then import the validated result JSON. Hindi backend o always-on endpoint ang Colab.
+Ang product finalization ay gumagawa ng durable `pending_manual_inference` job. Authorized annotators may use the bounded ZIP flow or issue one short-lived ticket for a single interactive Colab HTTPS run. Isang job lang ang puwedeng active at walang loop, batch, automatic retry, o always-on Colab endpoint.
 
 ## Hosting status
 

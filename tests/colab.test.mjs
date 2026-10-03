@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 const notebookPath = new URL('../backend/model/experiments/colab/buzzasr_colab_gpu.ipynb', import.meta.url);
 const bundlePath = new URL('../backend/api/src/inference_bundle.rs', import.meta.url);
+const routesPath = new URL('../backend/api/src/routes.rs', import.meta.url);
 
 test('Colab notebook validates the bounded bundle and pinned CUDA runtime', async () => {
   const notebook = JSON.parse(await readFile(notebookPath, 'utf8'));
@@ -21,7 +22,19 @@ test('Colab notebook validates the bounded bundle and pinned CUDA runtime', asyn
   assert.match(source, /return_timestamps='word'/);
   assert.doesNotMatch(source, /torch_xla/);
   assert.doesNotMatch(source, /ngrok|cloudflare|serveo|ssh|127\.0\.0\.1:4318/i);
-  assert.doesNotMatch(source, /AGORA_|AWS_|session_cookie|authorization/i);
+  assert.doesNotMatch(source, /AGORA_|AWS_|session_cookie/i);
+});
+
+test('Colab direct mode processes one HTTPS job without a persistent worker', async () => {
+  const notebook = JSON.parse(await readFile(notebookPath, 'utf8'));
+  const source = notebook.cells.flatMap(cell => cell.source ?? []).join('');
+
+  assert.match(source, /getpass\.getpass/);
+  assert.match(source, /\/poc-export/);
+  assert.match(source, /\/poc-import/);
+  assert.match(source, /Bearer \{POC_TOKEN\}/);
+  assert.match(source, /scheme == 'https'/);
+  assert.doesNotMatch(source, /while\s+True|brpop|lpop|redis\.|time\.sleep\(|auto.?retry/i);
 });
 
 test('Rust export and Colab agree on the manifest contract', async () => {
@@ -36,4 +49,13 @@ test('Rust export and Colab agree on the manifest contract', async () => {
     assert.ok(bundle.includes(field), `Rust bundle is missing ${field}`);
     assert.ok(notebook.includes(field), `Colab notebook is missing ${field}`);
   }
+});
+
+test('Rust exposes only job-scoped POC transfer routes', async () => {
+  const routes = await readFile(routesPath, 'utf8');
+
+  assert.match(routes, /\/api\/inference\/jobs\/\{id\}\/poc-ticket/);
+  assert.match(routes, /\/api\/inference\/jobs\/\{id\}\/poc-export/);
+  assert.match(routes, /\/api\/inference\/jobs\/\{id\}\/poc-import/);
+  assert.doesNotMatch(routes, /\/api\/inference\/poc\/(batch|worker|queue)/);
 });

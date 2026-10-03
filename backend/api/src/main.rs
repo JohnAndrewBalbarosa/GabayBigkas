@@ -25,6 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let state = AppState {
         login_limiter: LoginLimiter::default(),
         inference_bundles: inference_bundles.clone(),
+        poc_access: Default::default(),
         store: store.clone(),
         config: config.clone(),
     };

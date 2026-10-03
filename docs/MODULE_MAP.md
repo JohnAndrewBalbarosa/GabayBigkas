@@ -36,7 +36,7 @@ docs/ · tests/ · scripts/ · data/
 | `api/comparison` | Deterministic candidate evidence | Pronunciation verdicts |
 | `model/api` | Optional local gateway experiment | Canonical MVP orchestration |
 | `model/inference` | BuzzASR model loading and GPU inference only | Auth, annotation, persistence |
-| `model/experiments/colab` | Interactive bundle validation and inference | Secrets, public serving, remote control |
+| `model/experiments/colab` | Interactive single-job bundle validation, inference, at optional one-shot HTTPS transfer | Secrets in source, batching, loops, public serving, remote control |
 | `learner/session` | One capture/finalize lifecycle | RTC credentials |
 | `annotator/review` | One pending review queue | Persistence |
 | `lab` | Existing Agora developer workflow | Product identity/state |
@@ -46,7 +46,7 @@ docs/ · tests/ · scripts/ · data/
 ```text
 frontend feature → frontend transport → Rust HTTP interface
 Rust route → application/domain step → store/audio/inference-bundle/comparison adapter
-authorized bundle → interactive Colab notebook → validated result import
+authorized bundle or one-shot job ticket → interactive Colab notebook → validated result import
 Node lab route → existing lab adapters
 ```
 

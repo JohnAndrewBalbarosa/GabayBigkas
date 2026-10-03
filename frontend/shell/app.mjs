@@ -60,6 +60,7 @@ async function renderInferenceJobs() {
   const container = document.querySelector('#inference-jobs');
   const jobs = await api.inferenceJobs();
   container.replaceChildren(...jobs.map(job => {
+    const controls = document.createElement('div');
     const button = document.createElement('button');
     button.textContent = `I-export ${job.id}`;
     button.addEventListener('click', async () => {
@@ -70,7 +71,16 @@ async function renderInferenceJobs() {
       link.click();
       URL.revokeObjectURL(link.href);
     });
-    return button;
+    const ticketButton = document.createElement('button');
+    ticketButton.textContent = `Colab POC · ${job.id}`;
+    ticketButton.addEventListener('click', async () => {
+      const ticket = await api.createInferencePocTicket(job.id);
+      const output = document.createElement('code');
+      output.textContent = `Job: ${ticket.job_id} · Ticket: ${ticket.token} · Expires: ${new Date(ticket.expires_at * 1000).toISOString()}`;
+      controls.replaceChildren(button, ticketButton, output);
+    });
+    controls.append(button, ticketButton);
+    return controls;
   }));
   if (!jobs.length) container.textContent = 'Walang pending manual inference job.';
 }
