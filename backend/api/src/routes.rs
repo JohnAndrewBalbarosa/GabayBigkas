@@ -510,8 +510,21 @@ async fn run_inference_job_on_modal(
     Path(id): Path<String>,
 ) -> Result<Json<ImportResponse>, ApiError> {
     ensure_allowed_origin(&headers, state.config.allowed_origin.as_deref())?;
-    require_role(&state, &headers, "annotator")?;
     validate_id(&id)?;
+    let principal = require_principal(&state, &headers)?;
+    if principal.role != "annotator" {
+        if principal.role != "learner" {
+            return Err(ApiError::Forbidden);
+        }
+        let job = state.store.inference_job(&id)?.ok_or(ApiError::NotFound)?;
+        let session = state
+            .store
+            .coaching_session(&job.session_id)?
+            .ok_or(ApiError::NotFound)?;
+        if session.learner_id != principal.user_id {
+            return Err(ApiError::Forbidden);
+        }
+    }
     let client = state
         .modal_inference
         .clone()

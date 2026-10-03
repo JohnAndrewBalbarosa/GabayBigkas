@@ -98,7 +98,7 @@ capturing → preprocessing → pending_manual_inference → exported → import
 failure: analysis_unavailable | failed
 ```
 
-Only the owning consenting-adult learner may append/finalize a capturing session. Only annotators may export/import inference artifacts. Export bundles never contain learner identity, credentials, cookies, Agora secrets, or unrestricted transcripts.
+Only the owning consenting-adult learner may append/finalize a capturing session or trigger private Modal inference for their job. Only annotators may export/import inference artifacts. Export bundles never contain learner identity, credentials, cookies, Agora secrets, or unrestricted transcripts.
 
 ## Planned capacity and scheduling contract
 
