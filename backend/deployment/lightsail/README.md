@@ -16,8 +16,10 @@ needed.
 ## Native service contract
 
 - Install the release at `/opt/gabaybigkas/current/agora-coach-api`.
+- Publish the verified coach build at `/var/lib/gabaybigkas/.artifacts/build/coach`; preserve its previous contents for rollback.
 - Store SQLite and private audio under `/var/lib/gabaybigkas`.
 - Store secrets only in root-owned `/etc/gabaybigkas/coach.env`.
+- Keep `COACH_MODAL_INFERENCE_URL`, `COACH_MODAL_TOKEN_ID`, and `COACH_MODAL_TOKEN_SECRET` in that file only; never expose them to the browser or release archive.
 - Run through `gabaybigkas.service`; terminate TLS through the approved host
   reverse proxy.
 - Never copy export bundles to a public directory. Download and import require

@@ -333,6 +333,51 @@ impl Store {
         Ok(())
     }
 
+    pub fn claim_inference_job_for_modal(&self, id: &str) -> Result<InferenceJob, ApiError> {
+        let current = now();
+        let mut connection = self.connection.lock().map_err(|_| ApiError::Internal)?;
+        let transaction = connection.transaction()?;
+        let job = transaction
+            .query_row(
+                "SELECT id,session_id,audio_path,audio_sha256,audio_bytes,sample_rate,channels,duration_ms,model_id,model_revision,status,result_sha256,created_at,expires_at FROM inference_jobs WHERE id=?1",
+                [id],
+                read_inference_job,
+            )
+            .optional()?
+            .ok_or(ApiError::NotFound)?;
+        if job.expires_at <= current {
+            return Err(ApiError::Invalid("inference job has expired".to_owned()));
+        }
+        if !matches!(job.status.as_str(), "pending_manual_inference" | "exported") {
+            return Err(ApiError::Conflict(
+                "inference job is already running or completed".to_owned(),
+            ));
+        }
+        transaction.execute(
+            "DELETE FROM modal_inference_claims WHERE claimed_at<?1",
+            [current - 900],
+        )?;
+        let claimed = transaction.execute(
+            "INSERT OR IGNORE INTO modal_inference_claims(job_id,claimed_at) VALUES(?1,?2)",
+            params![id, current],
+        )?;
+        if claimed != 1 {
+            return Err(ApiError::Conflict(
+                "inference job already has an active Modal execution".to_owned(),
+            ));
+        }
+        transaction.commit()?;
+        Ok(job)
+    }
+
+    pub fn release_modal_inference_claim(&self, id: &str) -> Result<(), ApiError> {
+        self.connection
+            .lock()
+            .map_err(|_| ApiError::Internal)?
+            .execute("DELETE FROM modal_inference_claims WHERE job_id=?1", [id])?;
+        Ok(())
+    }
+
     pub fn begin_inference_import(
         &self,
         id: &str,
@@ -621,5 +666,49 @@ CREATE TABLE IF NOT EXISTS audio_chunks(session_id TEXT NOT NULL REFERENCES coac
 CREATE TABLE IF NOT EXISTS transcript_events(session_id TEXT NOT NULL REFERENCES coaching_sessions(id),sequence INTEGER NOT NULL,text TEXT NOT NULL,start_ms INTEGER NOT NULL,end_ms INTEGER NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(session_id,sequence));
 CREATE TABLE IF NOT EXISTS inference_jobs(id TEXT PRIMARY KEY,session_id TEXT NOT NULL UNIQUE REFERENCES coaching_sessions(id),audio_path TEXT NOT NULL,audio_sha256 TEXT NOT NULL,audio_bytes INTEGER NOT NULL,sample_rate INTEGER NOT NULL,channels INTEGER NOT NULL,duration_ms INTEGER NOT NULL,model_id TEXT NOT NULL,model_revision TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('pending_manual_inference','exported','importing','completed','analysis_unavailable')),result_sha256 TEXT,created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,updated_at INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS inference_jobs_status_expiry_idx ON inference_jobs(status,expires_at);
+CREATE TABLE IF NOT EXISTS modal_inference_claims(job_id TEXT PRIMARY KEY REFERENCES inference_jobs(id) ON DELETE CASCADE,claimed_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS annotation_items(id TEXT PRIMARY KEY,session_id TEXT NOT NULL REFERENCES coaching_sessions(id),expected_text TEXT NOT NULL,agora_text TEXT NOT NULL,buzz_text TEXT NOT NULL,sentence_start_ms INTEGER NOT NULL,sentence_end_ms INTEGER NOT NULL,focus_start_ms INTEGER NOT NULL,focus_end_ms INTEGER NOT NULL,clip_key TEXT NOT NULL,status TEXT NOT NULL,decision TEXT,corrected_text TEXT,notes TEXT,annotator_id TEXT REFERENCES users(id),reviewed_at INTEGER,created_at INTEGER NOT NULL);
 "#;
+
+#[cfg(test)]
+mod tests {
+    use super::Store;
+    use crate::error::ApiError;
+
+    #[test]
+    fn modal_claim_allows_only_one_active_execution() {
+        let directory = tempfile::tempdir().unwrap();
+        let store = Store::open(&directory.path().join("coach.sqlite3")).unwrap();
+        store
+            .seed_local_user("learner@example.test", "password12345", "learner")
+            .unwrap();
+        let learner = store
+            .find_local_user("learner@example.test")
+            .unwrap()
+            .unwrap();
+        let session = store
+            .create_coaching_session(&learner.id, "exercise", &["Prompt".to_owned()], true)
+            .unwrap();
+        let job = store
+            .create_inference_job(
+                &session.id,
+                "audio.wav",
+                &"a".repeat(64),
+                100,
+                16_000,
+                1,
+                1_000,
+                "BuzzASR/filipino",
+                "revision",
+            )
+            .unwrap();
+
+        assert!(store.claim_inference_job_for_modal(&job.id).is_ok());
+        assert!(matches!(
+            store.claim_inference_job_for_modal(&job.id),
+            Err(ApiError::Conflict(_))
+        ));
+        store.release_modal_inference_claim(&job.id).unwrap();
+        assert!(store.claim_inference_job_for_modal(&job.id).is_ok());
+    }
+}

@@ -6,8 +6,10 @@
   "engines": { "node": ">=24" },
   "scripts": {
     "start": "node --env-file-if-exists=.env backend/lab/main.mjs",
-    "start:coach": "node scripts/rust-workspace.mjs run-coach",
-    "start:model": "node scripts/rust-workspace.mjs run-model",
+    "start:coach": "node --env-file-if-exists=.env scripts/rust-workspace.mjs run-coach",
+    "start:model": "node --env-file-if-exists=.env scripts/rust-workspace.mjs run-model",
+    "modal:serve": "uvx --from modal modal serve backend/model/modal/app.py",
+    "modal:deploy": "uvx --from modal modal deploy backend/model/modal/app.py",
     "build": "node scripts/build.mjs",
     "check": "eslint . && node scripts/check-contracts.mjs && npm run build && cargo fmt --all --check && node scripts/rust-workspace.mjs clippy && python -m compileall -q backend/model/inference",
     "test": "node --test tests/*.test.mjs",

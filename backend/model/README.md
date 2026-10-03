@@ -1,10 +1,18 @@
 # Model
 
-Owns the BuzzASR boundary. `experiments/colab/` is the canonical interactive MVP GPU path with manual ZIP transfer and an optional one-shot HTTPS POC mode. Each manual run processes one job and exits. `inference/` owns only pinned Python model loading and inference, and `api/` remains an optional local gateway experiment. `deployment/aws/` contains only the AWS GPU deferral notice.
+Owns the BuzzASR boundary. `modal/` is the primary private single-job T4 path. `experiments/colab/` remains the manual fallback. `inference/` owns pinned Python model loading and inference, `api/` is an optional local gateway experiment, and `deployment/aws/` contains only the AWS GPU deferral notice.
 
 The model emits transcription evidence with timestamps. It does not issue pronunciation judgments.
 
-## One-shot HTTPS POC
+## Private Modal path
+
+1. Authenticate the Modal CLI without storing its account token in the repository.
+2. Run `npm run modal:deploy`; record the private endpoint URL from the bounded result.
+3. Create an environment-scoped Proxy Token in Modal.
+4. Put the endpoint, token ID, and token secret only in the Rust server secret file and set `COACH_MODAL_ENABLED=true`.
+5. An authenticated annotator may run exactly one pending job. Rust owns the claim, request, response validation, import, and explicit retry boundary.
+
+## Colab fallback
 
 1. Mag-login bilang `annotator`, pumili ng isang pending job, at pindutin ang `Colab POC` para gumawa ng two-hour, job-scoped ticket.
 2. Buksan ang `experiments/colab/buzzasr_colab_gpu.ipynb`, pumili ng GPU runtime, at patakbuhin ang cells manually.

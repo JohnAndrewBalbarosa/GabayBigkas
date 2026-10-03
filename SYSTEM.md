@@ -15,8 +15,8 @@ Ang transcript disagreement ay review signal lamang. Hindi ito automatic pronunc
 - Temporary full-session audio cleanup pagkatapos ng successful import o 24-hour bounded expiry.
 - Browser learner/annotator shell at independent PCM `AudioWorklet` recorder.
 - Secure manual inference ZIP export at validated, idempotent result import.
-- Optional interactive Colab POC transfer uses one short-lived, job-scoped ticket for exactly one HTTPS export then one import; only one ticket may be active.
-- Interactive Google Colab Free notebook ang MVP GPU boundary; Python owns only pinned BuzzASR inference.
+- Private Modal T4 endpoint is the primary MVP GPU boundary. Rust sends one claimed, bounded inference bundle with server-held proxy credentials and validates the returned result before import.
+- Optional interactive Colab transfer remains a manual fallback with one short-lived, job-scoped ticket for exactly one HTTPS export then one import.
 - Native Rust backend deployment contract para sa Lightsail. Zero-charge use requires account-specific active credit confirmation.
 - AWS GPU deployment and lifecycle scaling are post-MVP TODO documentation only.
 - Existing Node Agora lab sa `backend/lab` at developer UI sa `frontend/lab`.
@@ -24,7 +24,7 @@ Ang transcript disagreement ay review signal lamang. Hindi ito automatic pronunc
 ## Not yet runtime-verified
 
 - Live Lightsail deployment and account-specific credit verification.
-- One real interactive Colab export → inference → import run, manual o one-shot HTTPS mode.
+- One real private Modal T4 inference → validated import run.
 - Live Agora-to-product transcript forwarding.
 - Same-stream Agora custom-track wiring sa learner shell. Recorder accepts one shared `MediaStream`, pero ang verified lab still owns its existing RTC mic lifecycle.
 - Real-device learner-to-annotator end-to-end run.
@@ -42,7 +42,8 @@ Agora timestamped transcript events → Rust API
 Rust API
   ├─ auth + roles + SQLite
   ├─ private audio preprocessing
-  ├─ authorized ZIP export → interactive Colab Free → validated JSON import
+  ├─ one claimed ZIP job → private Modal T4 → validated JSON import
+  ├─ fallback authorized ZIP export → interactive Colab → validated JSON import
   ├─ optional one-shot HTTPS POC transfer uses one active job ticket
   └─ comparison → sentence clips → annotation queue
 
@@ -58,6 +59,8 @@ Browser annotator → authorized metadata + private clip stream
 5. Provider/model calls stay behind adapters.
 6. Logs contain IDs, states, durations, and bounded errors—never passwords, tokens, raw audio, or transcript bodies.
 7. Generated output belongs under `.artifacts/`.
+8. Public Home/About/Login/Sign-up pages and role-specific workspaces stay presentation-only. Public sign-up is unavailable in the POC.
+9. Learner feedback accepts only bounded structured data. YouTube video IDs are validated in the browser; discovery/tool calls and API keys belong in a future authenticated backend adapter.
 
 ## Product HTTP contract
 
@@ -71,6 +74,7 @@ POST /api/coaching/sessions/{id}/audio/chunks
 POST /api/coaching/sessions/{id}/agora-transcript-events
 POST /api/coaching/sessions/{id}/finalize
 GET  /api/inference/jobs
+POST /api/inference/jobs/{id}/modal-run
 GET  /api/inference/jobs/{id}/export
 POST /api/inference/jobs/{id}/import
 GET  /api/annotation/queue
@@ -165,11 +169,13 @@ npm run doctor
 npm run verify
 ```
 
-`npm run start:model` is an experimental local gateway command, not the canonical MVP inference path. The repository never installs, authenticates, or mutates Lightsail or Colab automatically.
+`npm run start:model` is an experimental local gateway command, not the canonical MVP inference path. `npm run modal:deploy` is an explicit operator action and requires an authenticated Modal CLI.
 
 ## Safety boundaries
 
-- Colab is interactive only: no tunnel, public server, SSH, unattended worker, queue loop, keep-alive, automatic retry, or remote-control mechanism.
+- Modal Web Function MUST require proxy authentication, use one T4 container, and accept one claimed job per Rust request. The browser MUST NOT receive Modal credentials.
+- Rust MUST NOT automatically retry Modal inference. A failed claim is released for an explicit annotator retry.
+- Colab fallback is interactive only: no tunnel, public server, SSH, unattended worker, queue loop, keep-alive, automatic retry, or remote-control mechanism.
 - Direct Colab POC transfer MUST process one job per manual notebook run over HTTPS, then exit; manual ZIP transfer remains the fallback.
 - Lightsail hosts only the native Rust product backend; no GPU or Python model runtime.
 - No model output becomes a pronunciation verdict.

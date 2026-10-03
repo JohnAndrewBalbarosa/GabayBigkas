@@ -54,6 +54,10 @@ pub fn router(state: AppState) -> Router {
             post(finalize_coaching_session),
         )
         .route("/api/inference/jobs", get(list_inference_jobs))
+        .route(
+            "/api/inference/jobs/{id}/modal-run",
+            post(run_inference_job_on_modal),
+        )
         .route("/api/inference/jobs/{id}/export", get(export_inference_job))
         .route(
             "/api/inference/jobs/{id}/poc-ticket",
@@ -498,6 +502,36 @@ struct ImportResponse {
     status: &'static str,
     review_items: usize,
     idempotent: bool,
+}
+
+async fn run_inference_job_on_modal(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+) -> Result<Json<ImportResponse>, ApiError> {
+    ensure_allowed_origin(&headers, state.config.allowed_origin.as_deref())?;
+    require_role(&state, &headers, "annotator")?;
+    validate_id(&id)?;
+    let client = state
+        .modal_inference
+        .clone()
+        .ok_or(ApiError::ModelUnavailable)?;
+    let job = state.store.claim_inference_job_for_modal(&id)?;
+    let outcome = run_modal_inference_workflow(&state, &client, &job).await;
+    if let Err(error) = state.store.release_modal_inference_claim(&id) {
+        tracing::error!(event = "modal.inference.claim_release_failed", job_id = %id, error = %error);
+    }
+    outcome
+}
+
+async fn run_modal_inference_workflow(
+    state: &AppState,
+    client: &crate::modal_inference::ModalInferenceClient,
+    job: &crate::store::InferenceJob,
+) -> Result<Json<ImportResponse>, ApiError> {
+    let bundle = state.inference_bundles.export_bundle(job)?;
+    let result = client.infer(&job.id, bundle).await?;
+    import_inference_result_for_job(state, job.id.clone(), result)
 }
 
 async fn import_inference_result(

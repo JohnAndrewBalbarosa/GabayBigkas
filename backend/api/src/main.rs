@@ -5,6 +5,7 @@ use agora_coach_api::{
     auth::LoginLimiter,
     config::Config,
     inference_bundle::{InferenceBundleService, run_expired_job_cleanup},
+    modal_inference::ModalInferenceClient,
     routes,
     store::Store,
 };
@@ -22,9 +23,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let store = Arc::new(Store::open(&config.database_path)?);
     seed_configured_accounts(&store)?;
     let inference_bundles = InferenceBundleService::new(config.private_audio_root.clone());
+    let modal_inference = ModalInferenceClient::from_config(&config)
+        .map_err(|message| std::io::Error::new(std::io::ErrorKind::InvalidInput, message))?;
     let state = AppState {
         login_limiter: LoginLimiter::default(),
         inference_bundles: inference_bundles.clone(),
+        modal_inference,
         poc_access: Default::default(),
         store: store.clone(),
         config: config.clone(),
