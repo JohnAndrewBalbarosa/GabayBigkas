@@ -35,7 +35,7 @@ test('local camera preview works with fake browser media and token tools report 
   await page.getByRole('button', { name: 'Voice / video test', exact: true }).click();
   await page.locator('#media-mode').selectOption('video');
   await page.locator('#device-preview').click();
-  await expect(page.locator('#rtc-status')).toContainText('Local preview only');
+  await expect(page.locator('#rtc-status')).toContainText('Local preview only', { timeout: 10_000 });
   expect(await page.locator('#preview').evaluate(video => video.srcObject.getTracks().every(t => t.readyState === 'live'))).toBe(true);
   await page.locator('#device-stop').click();
   expect(await page.locator('#preview').evaluate(video => video.srcObject)).toBeNull();

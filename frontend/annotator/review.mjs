@@ -6,6 +6,7 @@ const DECISIONS = [
 ];
 
 export async function renderAnnotationQueue(api, container, announce = () => {}) {
+  stopAnnotationAudio(container);
   container.setAttribute('aria-busy', 'true');
   try {
     const items = await api.annotationQueue();
@@ -14,6 +15,13 @@ export async function renderAnnotationQueue(api, container, announce = () => {})
     return items.length;
   } finally {
     container.setAttribute('aria-busy', 'false');
+  }
+}
+
+export function stopAnnotationAudio(root) {
+  for (const audio of root.querySelectorAll('audio')) {
+    audio.pause();
+    if (audio.currentTime > 0) audio.currentTime = 0;
   }
 }
 
@@ -34,18 +42,21 @@ function annotationCard(api, item, announce) {
   duration.textContent = formatRange(item.sentence_start_ms, item.sentence_end_ms);
   header.append(title, duration);
 
-  const evidence = document.createElement('div');
+  const evidence = document.createElement('section');
   evidence.className = 'evidence-grid';
+  const evidenceHeading = document.createElement('strong');
+  evidenceHeading.className = 'panel-kicker';
+  evidenceHeading.textContent = 'Transcript evidence';
   evidence.append(
-    evidenceCell('Expected', item.expected_text),
+    evidenceHeading,
     evidenceCell('Agora transcript', item.agora_text),
     evidenceCell('BuzzASR transcript', item.buzz_text),
   );
 
   const body = document.createElement('div');
   body.className = 'review-body';
-  body.append(audioEvidence(api, item), decisionForm(api, item, card, announce));
-  card.append(header, evidence, body);
+  body.append(audioEvidence(api, item), evidence, decisionForm(api, item, card, announce));
+  card.append(header, body);
   return card;
 }
 
@@ -58,9 +69,16 @@ function audioEvidence(api, item) {
   audio.controls = true;
   audio.preload = 'none';
   audio.src = api.annotationAudioUrl(item.id);
+  const expected = document.createElement('div');
+  expected.className = 'expected-phrase';
+  const expectedLabel = document.createElement('strong');
+  expectedLabel.textContent = 'Expected phrase';
+  const expectedText = document.createElement('p');
+  expectedText.textContent = item.expected_text;
+  expected.append(expectedLabel, expectedText);
   const timing = document.createElement('p');
   timing.textContent = `Focus range: ${formatRange(item.focus_start_ms, item.focus_end_ms)}. Use the full sentence context before deciding.`;
-  section.append(heading, audio, timing);
+  section.append(heading, audio, timing, expected);
   return section;
 }
 
@@ -127,6 +145,7 @@ function decisionForm(api, item, card, announce) {
         corrected_text: correction.value.trim() || null,
         notes: notes.value.trim() || null,
       });
+      stopAnnotationAudio(card);
       card.remove();
       announce('The review decision was saved.');
     } catch (error) {
