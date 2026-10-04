@@ -26,6 +26,42 @@
 | `2:17–2:32` | Bumalik sa learner. Mas confident na inuulit ang sentence; soft rise ng music. Mag-end sa title card. | “Dahil ang pronunciation practice ay hindi dapat nakakatakot. Dapat itong malinaw, makatao, at nagbibigay ng lakas para magsalita. GabayBigkas—boses mo, gabay mo.” | **GabayBigkas**<br>Mas malinaw na practice. Mas confident na boses. |
 | `2:32–2:38` | End card: team name, members, event, optional QR code. Music resolves. | “Built for real-time learning with Agora.” | **[TEAM NAME]** · **[EVENT NAME]**<br>`[QR / demo link]` |
 
+## Pronunciation-improvement showcase
+
+Optional itong `50–60` second insert pagkatapos ng dual-ASR flow. Ang target ay isang
+specific sound, hindi ang learner’s accent o identity. Huwag gamitin ang linyang
+**“bad accent fixed.”** Gamitin ang **“unclear first take → reviewed guidance → clearer
+retry.”**
+
+**Practice sentence:** “Three thoughtful students reviewed the weather forecast.”
+
+| Oras | Visual at performance direction | Dialogue / voice-over | On-screen text |
+| --- | --- | --- | --- |
+| `0:00–0:08` | Learner presses **Start session** and reads the practice sentence naturally. Huwag mag-caricature ng Filipino accent; ang actor ay gagawa lamang ng bahagyang unclear na initial `/θ/` sa **three**. | **Learner:** “Three thoughtful students reviewed the weather forecast.” | **BASELINE TAKE**<br>Consented demo audio |
+| `0:08–0:18` | Ipakita ang real session capture, pagkatapos ay ang flow na `finalize → preprocess → Agora/Buzz comparison`. Sa review screen, i-focus ang **three**. Gumamit ng fictional transcript kung hindi ito live run. | **Narrator:** “Pagkatapos ng session, ikinukumpara ng sarili naming workflow ang expected phrase at dalawang transcript path. Nagkaiba ang mga transcript sa salitang *three*, kaya naging candidate ito for review.” | **Expected:** three<br>**Agora:** tree<br>**BuzzASR:** three<br>**Candidate only ≠ verdict** |
+| `0:18–0:30` | Reviewer replays the whole sentence clip, then the highlighted range. Piliin ang appropriate annotation decision bago lumabas ang feedback card. | **Reviewer:** “May sapat na context. Practice natin ang `/θ/`: dila nang bahagya sa pagitan ng ngipin, then steady airflow—*θree*.” | **HUMAN-REVIEWED GUIDANCE**<br>Listen · Observe · Try again |
+| `0:30–0:42` | Learner listens once, activates **Retry**, at binibigkas muli ang parehong sentence. Panatilihing magkatabi ang baseline at retry waveforms; huwag magpakita ng invented accuracy score. | **Learner:** “Three thoughtful students reviewed the weather forecast.” | **RETRY TAKE**<br>Same phrase · Same learner |
+| `0:42–0:52` | Reviewer compares both consented clips and confirms only the target sound. Learner smiles; understated lang ang reaction. | **Reviewer:** “Mas clear na ang *three*. Keep your natural voice—target sound lang ang pinapractice natin.” | **Clearer target sound**<br>Accent preserved |
+| `0:52–1:00` | Ipakita ang compact pipeline at GabayBigkas mark. | **Narrator:** “Hindi binubura ng GabayBigkas ang accent. Ginagawa nitong reviewable ang evidence para may konkretong marinig, maituro, at masubukan ulit.” | **Evidence → human guidance → retry** |
+
+### Presenter bridge
+
+> “Ang improvement na nakita ninyo ay hindi galing sa automatic accent score.
+> Galing ito sa implemented session capture, private audio processing, dual-ASR
+> comparison, sentence-level review, at guided retry. Ang system ang nagpapabilis
+> ng paghahanap ng practice candidate; tao pa rin ang nagbibigay ng final judgment.”
+
+### Demo-state labels
+
+- **LIVE** — gamitin lamang kapag ang exact learner → inference → import → review run ay
+  nakumpleto sa demo environment.
+- **PRE-RECORDED REAL RUN** — gamitin kapag totoong system output ang footage pero
+  ginawa bago ang presentation.
+- **PROTOTYPE / FICTIONAL DATA** — gamitin kapag staged ang transcript, highlight,
+  feedback, o retry comparison.
+- Huwag gumamit ng percentage improvement, accent score, o “fixed” claim nang walang
+  measured benchmark at documented review protocol.
+
 ## Recording copy
 
 Ito ang clean voice-over text para sa narrator:
