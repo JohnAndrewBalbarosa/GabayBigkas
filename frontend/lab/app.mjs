@@ -11,6 +11,7 @@ async function boot() {
     state.catalog = await response.json();
     const { products, config } = state.catalog;
     setupRtc({ config, api });
+    bindActions();
     $('products-count').textContent = products.length;
     $('operations-count').textContent = products.reduce((n, p) => n + p.operations.length, 0);
     $('schema-count').textContent = products.reduce((n, p) => n + p.operations.filter(o => o.validation !== 'partial').length, 0);
@@ -19,7 +20,6 @@ async function boot() {
     $('readiness').textContent = JSON.stringify({ credentialsPresent: config.credentials, rtcConfigured: config.rtcReady, liveVerified: false }, null, 2);
     renderProducts();
     selectProduct(products[0]);
-    bindActions();
   } catch (error) { $('notice').textContent = error.message; $('notice').classList.add('error'); }
 }
 
