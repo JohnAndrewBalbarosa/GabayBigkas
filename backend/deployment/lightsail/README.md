@@ -32,6 +32,7 @@ This repository does not create or mutate a Lightsail instance automatically.
 
 - Public origin: `https://54.179.89.16`
 - GitHub Pages origin: `https://johnandrewbalbarosa.github.io`
+- Set `COACH_ALLOWED_ORIGIN=https://johnandrewbalbarosa.github.io,https://54.179.89.16` in the root-owned service env file so the Pages build and the VPS-hosted frontend pass the exact POST origin guard. Keep learner and annotator authentication enabled.
 - Rust remains bound to `127.0.0.1:4320`; nginx owns public ports `80` and `443`.
 - `gabaybigkas-nginx.conf` uses a browser-trusted short-lived IP certificate.
 - Certbot renewal MUST remain enabled because IP certificates expire after about six days.

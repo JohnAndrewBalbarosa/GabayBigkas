@@ -10,7 +10,10 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use tower_http::{
-    cors::CorsLayer, limit::RequestBodyLimitLayer, services::ServeDir, trace::TraceLayer,
+    cors::{AllowOrigin, CorsLayer},
+    limit::RequestBodyLimitLayer,
+    services::ServeDir,
+    trace::TraceLayer,
 };
 use uuid::Uuid;
 
@@ -93,10 +96,13 @@ pub fn router(state: AppState) -> Router {
 }
 
 fn production_cors(origin: &str) -> CorsLayer {
-    let origin =
-        HeaderValue::from_str(origin).expect("COACH_ALLOWED_ORIGIN must be a valid origin");
+    let origins = configured_origins(origin)
+        .map(|value| {
+            HeaderValue::from_str(value).expect("COACH_ALLOWED_ORIGIN must contain valid origins")
+        })
+        .collect::<Vec<_>>();
     CorsLayer::new()
-        .allow_origin(origin)
+        .allow_origin(AllowOrigin::list(origins))
         .allow_credentials(true)
         .allow_methods([Method::GET, Method::POST])
         .allow_headers([
@@ -105,6 +111,13 @@ fn production_cors(origin: &str) -> CorsLayer {
             HeaderName::from_static("x-sample-rate"),
             HeaderName::from_static("x-channels"),
         ])
+}
+
+fn configured_origins(value: &str) -> impl Iterator<Item = &str> {
+    value
+        .split(',')
+        .map(str::trim)
+        .filter(|origin| !origin.is_empty())
 }
 
 #[derive(Serialize)]
@@ -600,7 +613,9 @@ pub(crate) fn ensure_allowed_origin(
             && url.query().is_none()
             && url.fragment().is_none()
     });
-    if allowed_origin.map_or(local_origin, |allowed| origin == allowed) {
+    if allowed_origin.map_or(local_origin, |allowed| {
+        configured_origins(allowed).any(|item| origin == item)
+    }) {
         Ok(())
     } else {
         Err(ApiError::Forbidden)
@@ -654,5 +669,18 @@ mod tests {
             ensure_allowed_origin(&headers, Some("https://johnandrewbalbarosa.github.io")).is_ok()
         );
         assert!(ensure_allowed_origin(&headers, Some("https://attacker.invalid")).is_err());
+
+        let deployed = "https://johnandrewbalbarosa.github.io,https://54.179.89.16";
+        assert!(ensure_allowed_origin(&headers, Some(deployed)).is_ok());
+        headers.insert(
+            header::ORIGIN,
+            HeaderValue::from_static("https://54.179.89.16"),
+        );
+        assert!(ensure_allowed_origin(&headers, Some(deployed)).is_ok());
+        headers.insert(
+            header::ORIGIN,
+            HeaderValue::from_static("https://54.179.89.16.attacker.test"),
+        );
+        assert!(ensure_allowed_origin(&headers, Some(deployed)).is_err());
     }
 }

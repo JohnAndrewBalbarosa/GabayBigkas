@@ -10,6 +10,7 @@ Default bind: `127.0.0.1:4320`. Runtime state stays under `.artifacts/` unless e
 - `YOUTUBE_API_KEY`: backend-only YouTube Data API v3 search key. A missing key disables feedback without breaking local authentication/audio flows.
 - `COACH_MODAL_ENABLED=true`, HTTPS inference URL and both Modal proxy credentials: private T4 transcription. Missing/failed inference produces an explicit failure, never a Colab fallback.
 - `/api/health` reports adapter configuration, not provider reachability or a successful paid inference.
+- `COACH_ALLOWED_ORIGIN` accepts a comma-separated list of exact HTTPS frontend origins, without path or trailing slash. The POST origin guard and credentialed CORS use the same list; authentication and role checks still apply.
 
 ## Frontend handoff
 
