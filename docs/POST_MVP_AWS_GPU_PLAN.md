@@ -3,7 +3,7 @@
 ## Status
 
 - **Classification:** post-MVP TODO under the project-wide TODO rule.
-- **Current MVP:** Lightsail Rust backend plus interactive Google Colab Free inference.
+- **Current MVP:** Lightsail Rust backend plus private Modal T4 inference.
 - **Not implemented:** paid GPU EC2, ECR image runtime, Lambda lifecycle controller, automatic warm/cool scaling, at unattended GPU workers.
 - **Cost:** `g4dn`, `g5`, and `g6` are paid GPU families and MUST NOT be represented as AWS Free Plan infrastructure.
 

@@ -63,28 +63,6 @@ pub fn router(state: AppState) -> Router {
             "/api/coaching/sessions/{id}/coach-feedback",
             post(create_coach_feedback),
         )
-        .route("/api/inference/jobs", get(list_inference_jobs))
-        .route(
-            "/api/inference/jobs/{id}/modal-run",
-            post(run_inference_job_on_modal),
-        )
-        .route("/api/inference/jobs/{id}/export", get(export_inference_job))
-        .route(
-            "/api/inference/jobs/{id}/poc-ticket",
-            post(issue_inference_poc_ticket),
-        )
-        .route(
-            "/api/inference/jobs/{id}/poc-export",
-            get(export_inference_job_with_poc_ticket),
-        )
-        .route(
-            "/api/inference/jobs/{id}/poc-import",
-            post(import_inference_result_with_poc_ticket),
-        )
-        .route(
-            "/api/inference/jobs/{id}/import",
-            post(import_inference_result),
-        )
         .route("/api/annotation/queue", get(annotation_queue))
         .route("/api/annotation/items/{id}", get(annotation_item))
         .route("/api/annotation/items/{id}/audio", get(annotation_audio))

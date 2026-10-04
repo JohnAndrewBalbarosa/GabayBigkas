@@ -7,13 +7,13 @@ ng orchestration, persistence, validation, comparison, at annotation.
 ## Canonical runtime
 
 ```text
-authorized ZIP export
-  -> interactive Google Colab Free notebook
-     -> pinned Transformers pipeline on an available CUDA GPU
+Rust background job
+  -> private Modal T4 endpoint
+     -> pinned Transformers pipeline on CUDA
         -> bounded result JSON for validated Rust import
 ```
 
-- Canonical MVP entry: `../experiments/colab/buzzasr_colab_gpu.ipynb`
+- Canonical MVP entry: `../modal/app.py`
 - Canonical model revision: `fb8cf0d93e2437f8d639549c67733ca9db10e055`
 - Audio contract: mono PCM16 WAV, 16 kHz, hanggang 10 MiB bawat request
 - Output contract: text, segments, word timestamps, model ID, at model revision
@@ -28,7 +28,5 @@ BUZZASR_MODEL_ID=BuzzASR/filipino
 BUZZASR_MODEL_REVISION=fb8cf0d93e2437f8d639549c67733ca9db10e055
 ```
 
-Operator-controlled at interactive ang model access, Hugging Face cache, at CUDA
-runtime. Manual ZIP ang fallback; optional ang one-shot HTTPS POC transfer gamit ang
-short-lived single-job ticket. Hindi backend, public endpoint, tunnel, queue loop,
-unattended worker, keep-alive, o remote-control path ang Colab notebook.
+Private at single-job ang model access, Hugging Face cache, at CUDA runtime. Walang
+manual ZIP, Colab fallback, public model endpoint, queue loop, o automatic retry.

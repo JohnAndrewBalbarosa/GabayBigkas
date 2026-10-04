@@ -878,7 +878,59 @@ mod tests {
         let second = store.add_audio_chunk(&session.id, &chunk).unwrap();
         assert!(second);
 
+        let conflicting = AudioChunk {
+            path: "different-content.pcm".to_owned(),
+            ..chunk.clone()
+        };
+        assert!(matches!(
+            store.add_audio_chunk(&session.id, &conflicting),
+            Err(ApiError::Conflict(_))
+        ));
+
         let chunks = store.audio_chunks(&session.id).unwrap();
         assert_eq!(chunks.len(), 1);
+    }
+
+    #[test]
+    fn coach_feedback_is_generated_once_per_session_and_agent() {
+        use super::CoachFeedbackClaim;
+
+        let directory = tempfile::tempdir().unwrap();
+        let store = Store::open(&directory.path().join("coach.sqlite3")).unwrap();
+        store
+            .seed_local_user("learner@example.test", "password12345", "learner")
+            .unwrap();
+        let learner = store
+            .find_local_user("learner@example.test")
+            .unwrap()
+            .unwrap();
+        let session = store
+            .create_coaching_session(&learner.id, "exercise", &["Prompt".to_owned()], true)
+            .unwrap();
+
+        assert!(matches!(
+            store.claim_coach_feedback(&session.id, "agent-1").unwrap(),
+            CoachFeedbackClaim::Generate
+        ));
+        assert!(matches!(
+            store.claim_coach_feedback(&session.id, "agent-1"),
+            Err(ApiError::Conflict(_))
+        ));
+        store
+            .complete_coach_feedback(
+                &session.id,
+                "agent-1",
+                "Keep your tongue relaxed.",
+                "Practice video",
+                "dQw4w9WgXcQ",
+                "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            )
+            .unwrap();
+        let repeated = store.claim_coach_feedback(&session.id, "agent-1").unwrap();
+        assert!(matches!(repeated, CoachFeedbackClaim::Idempotent(_)));
+        assert!(matches!(
+            store.claim_coach_feedback(&session.id, "agent-2"),
+            Err(ApiError::Conflict(_))
+        ));
     }
 }

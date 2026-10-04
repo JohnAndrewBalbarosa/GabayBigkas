@@ -51,11 +51,10 @@ test('Rust export and Colab agree on the manifest contract', async () => {
   }
 });
 
-test('Rust exposes only job-scoped POC transfer routes', async () => {
+test('Rust does not expose deprecated manual inference or Colab routes', async () => {
   const routes = await readFile(routesPath, 'utf8');
 
-  assert.match(routes, /\/api\/inference\/jobs\/\{id\}\/poc-ticket/);
-  assert.match(routes, /\/api\/inference\/jobs\/\{id\}\/poc-export/);
-  assert.match(routes, /\/api\/inference\/jobs\/\{id\}\/poc-import/);
-  assert.doesNotMatch(routes, /\/api\/inference\/poc\/(batch|worker|queue)/);
+  assert.doesNotMatch(routes, /\.route\("\/api\/inference\/jobs/);
+  assert.doesNotMatch(routes, /poc-(ticket|export|import)/);
+  assert.doesNotMatch(routes, /modal-run/);
 });

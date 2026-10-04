@@ -1,6 +1,6 @@
 # Model
 
-Owns the BuzzASR boundary. `modal/` is the primary private single-job T4 path. `experiments/colab/` remains the manual fallback. `inference/` owns pinned Python model loading and inference, `api/` is an optional local gateway experiment, and `deployment/aws/` contains only the AWS GPU deferral notice.
+Owns the BuzzASR boundary. `modal/` is the private single-job T4 path. `experiments/colab/` is deprecated and not connected to the runtime. `inference/` owns pinned Python model loading and inference, `api/` is an optional local gateway experiment, and `deployment/aws/` contains only the AWS GPU deferral notice.
 
 The model emits transcription evidence with timestamps. It does not issue pronunciation judgments.
 
@@ -10,13 +10,8 @@ The model emits transcription evidence with timestamps. It does not issue pronun
 2. Run `npm run modal:deploy`; record the private endpoint URL from the bounded result.
 3. Create an environment-scoped Proxy Token in Modal.
 4. Put the endpoint, token ID, and token secret only in the Rust server secret file and set `COACH_MODAL_ENABLED=true`.
-5. An authenticated annotator may run exactly one pending job. Rust owns the claim, request, response validation, import, and explicit retry boundary.
+5. Session finalization starts exactly one background job. Rust owns the claim, request, response validation, import, terminal failure state, and cleanup boundary.
 
-## Colab fallback
+## Deprecated experiment
 
-1. Mag-login bilang `annotator`, pumili ng isang pending job, at pindutin ang `Colab POC` para gumawa ng two-hour, job-scoped ticket.
-2. Buksan ang `experiments/colab/buzzasr_colab_gpu.ipynb`, pumili ng GPU runtime, at patakbuhin ang cells manually.
-3. Piliin ang `direct`, ilagay ang HTTPS Rust API base URL, eksaktong job ID, at ticket sa hidden prompt.
-4. Hayaang matapos ang isang export, inference, at import; pagkatapos ay i-disconnect at i-delete ang runtime.
-
-Walang Google password, application password, cookie, Agora secret, o AWS credential na inilalagay sa notebook. Kapag may failure, ayusin muna ang sanhi bago manual na ulitin ang kasalukuyang step; walang automatic retry.
+Ang `experiments/colab/` notebook ay historical reference lamang. Wala itong product route, ticket flow, import control, o fallback role.

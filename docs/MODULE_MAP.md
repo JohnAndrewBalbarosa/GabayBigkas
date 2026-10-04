@@ -35,6 +35,7 @@ docs/ · tests/ · scripts/ · data/
 | `api/inference_bundle` | Manifest, ZIP, import validation, private-audio adapter | Model loading, identities |
 | `api/model` | Timestamped inference data contract | Model loading, provider calls |
 | `api/comparison` | Deterministic candidate evidence | Pronunciation verdicts |
+| `api/coach_feedback` | Agora history retrieval and one-result YouTube discovery | Browser rendering, audio transcription |
 | `model/api` | Optional local gateway experiment | Canonical MVP orchestration |
 | `model/inference` | BuzzASR model loading and GPU inference only | Auth, annotation, persistence |
 | `model/modal` | Private Modal T4 lifecycle, bundle checks, pinned inference | Browser auth, persistence, pronunciation judgments |

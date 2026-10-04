@@ -32,21 +32,19 @@ pub struct GeneratedCoachFeedback {
 
 impl CoachFeedbackService {
     pub fn from_config(config: &Config) -> Result<Option<Self>, String> {
-        match (
-            &config.agora_app_id,
-            &config.agora_convo_token,
-            &config.youtube_api_key,
-        ) {
-            (Some(app_id), Some(token), Some(youtube_api_key)) => Self::new(
+        let Some(youtube_api_key) = &config.youtube_api_key else {
+            return Ok(None);
+        };
+        match (&config.agora_app_id, &config.agora_convo_token) {
+            (Some(app_id), Some(token)) => Self::new(
                 app_id.clone(),
                 token.clone(),
                 youtube_api_key.clone(),
                 "https://api.agora.io/api/conversational-ai-agent/v2/projects".to_owned(),
                 "https://www.googleapis.com/youtube/v3/search".to_owned(),
             ),
-            (None, None, None) => Ok(None),
             _ => Err(
-                "AGORA_APP_ID, AGORA_CONVO_TOKEN, and YOUTUBE_API_KEY must be set together"
+                "AGORA_APP_ID and AGORA_CONVO_TOKEN are required when YOUTUBE_API_KEY is set"
                     .to_owned(),
             ),
         }
@@ -239,7 +237,20 @@ fn validate_video_id(video_id: &str) -> Result<(), ApiError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{validate_agent_id, validate_video_id, youtube_query};
+    use super::{CoachFeedbackService, validate_agent_id, validate_video_id, youtube_query};
+    use crate::config::Config;
+
+    #[test]
+    fn missing_youtube_key_disables_adapter_without_breaking_startup() {
+        let mut config = Config::for_test();
+        config.agora_app_id = Some("app-id".to_owned());
+        config.agora_convo_token = Some("token".to_owned());
+        assert!(
+            CoachFeedbackService::from_config(&config)
+                .unwrap()
+                .is_none()
+        );
+    }
 
     #[test]
     fn builds_practice_query_from_expected_phrase() {

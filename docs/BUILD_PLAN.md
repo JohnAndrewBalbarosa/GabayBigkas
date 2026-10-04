@@ -3,16 +3,16 @@
 ## Implemented foundation
 
 - Curated backend/frontend boundaries and preserved Agora lab.
-- Rust auth, roles, SQLite, PCM ingestion, durable manual-inference jobs, bundle validation, comparison, annotation, and bounded cleanup.
-- Interactive Colab notebook for pinned Python-only BuzzASR GPU inference.
+- Rust auth, roles, SQLite, PCM ingestion, durable background-inference jobs, bundle validation, comparison, annotation, and bounded cleanup.
+- Private Modal T4 endpoint for pinned Python-only BuzzASR GPU inference.
 - Lightsail systemd guidance for the Rust backend only; no AWS GPU resource is part of the MVP.
 - Learner capture and annotator browser modules.
 - Repository verification passes: lint, contracts, builds, Rust clippy/tests, Node tests, at Agora browser E2E.
 
 ## Required before live demo
 
-1. Run the export notebook against the pinned immutable model revision on an available Colab Free GPU.
-2. Complete one consenting-adult learner → export → interactive inference → import → annotator run.
+1. Run one private Modal job against the pinned immutable model revision.
+2. Complete one consenting-adult learner → background inference → validated import → annotator run.
 3. Wire the shared learner `MediaStreamTrack` into Agora RTC while keeping RTC independent from inference.
 4. Verify bounded cleanup after successful import, expiry, and failed import recovery.
 5. Measure WER/CER and latency before publishing accuracy claims.
@@ -62,10 +62,10 @@ These items implement the planned contract in `SYSTEM.md`. None is complete unti
 - [ ] Integration-test auth brute force by account and IP, authenticated bypass attempts, oversized/slow bodies, queue saturation, SQLite contention, and model outage.
 - [ ] Stress-test mixed reads/writes to prove express latency remains bounded while durable work still progresses.
 - [ ] Soak-test until steady-state memory is visible; fail on unbounded RSS, queue growth, leaked files, or unrecovered permits.
-- [ ] Interruption-test process restart and abandoned/failed manual inference; accepted jobs must become completed, retryable, expired, or explicitly unavailable—never ambiguous.
+- [ ] Interruption-test process restart and abandoned/failed background inference; accepted jobs must become completed, expired, or explicitly unavailable—never ambiguous.
 - [ ] Compare one-worker and two-worker results, then FIFO and bounded-priority results, using identical workloads.
 - [ ] Add CI smoke thresholds and a separate constrained-host benchmark profile; CI success MUST NOT be represented as VPS capacity proof.
-- [ ] Publish a judge-ready evidence table with hardware, workload, commit, throughput, tail latency, peak RSS, rejection behavior, recovery, Lightsail account eligibility/cost, and Colab runtime limits.
+- [ ] Publish a judge-ready evidence table with hardware, workload, commit, throughput, tail latency, peak RSS, rejection behavior, recovery, Lightsail account eligibility/cost, and Modal runtime limits.
 
 ## Deferred
 

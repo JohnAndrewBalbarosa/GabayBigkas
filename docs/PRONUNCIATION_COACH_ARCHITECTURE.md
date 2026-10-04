@@ -9,9 +9,8 @@ one browser microphone stream
 
 session finalize
   → duration-preserving preprocessing
-  → durable manual-inference job
-  → authorized ZIP export
-  → interactive pinned BuzzASR inference in Colab Free
+  → durable background-inference job
+  → private Modal T4 BuzzASR inference
   → validated result import
   → expected/Agora/Buzz comparison
   → processed sentence clip + focused mismatch range
@@ -38,10 +37,9 @@ session finalize
 ## MVP hosting
 
 - AWS Lightsail hosts only the Rust product backend, auth/roles, SQLite, private audio preprocessing, durable inference metadata, comparison, at annotation.
-- Google Colab Free runs only pinned BuzzASR GPU inference through an interactive operator-controlled notebook.
-- Colab is not a backend, production endpoint, tunnel, unattended worker, or distributed compute node.
-- Export bundles contain only `manifest.json` and processed `audio.wav`; the manifest uses an opaque job ID and no learner identity or credentials.
-- Agora RTC remains independent from the manual Colab inference path.
+- Historical Colab files are deprecated and have no runtime, endpoint, or fallback role.
+- Inference bundles contain only `manifest.json` and processed `audio.wav`; the manifest uses an opaque job ID and no learner identity or credentials.
+- Agora RTC remains independent from the private BuzzASR transcription path.
 - Paid AWS GPU deployment and automatic lifecycle scaling are post-MVP TODOs in `POST_MVP_AWS_GPU_PLAN.md`.
 
 ## Claims
