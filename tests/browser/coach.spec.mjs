@@ -53,6 +53,8 @@ test('annotator can submit every backend decision field from private sentence ev
 
   await page.goto(coachUrl);
   await expect(page.getByRole('heading', { name: /Fifty people think clearly/i })).toBeVisible();
+  await expect(page.locator('#learner')).toBeHidden();
+  await expect(page.locator('#annotator .review-body > *')).toHaveCount(3);
   await page.getByLabel('Review decision').selectOption('corrected_transcript');
   await page.getByLabel('Corrected transcript').fill('Fifty people think clearly.');
   await page.getByLabel(/Reviewer notes/).fill('Reviewed with the full sentence context.');
@@ -62,4 +64,40 @@ test('annotator can submit every backend decision field from private sentence ev
     corrected_text: 'Fifty people think clearly.',
     notes: 'Reviewed with the full sentence context.',
   });
+});
+
+test('annotator clip stops when leaving review, refreshing, and removing a reviewed card', async ({ page }) => {
+  await page.route('**/api/**', route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === '/api/auth/session') return route.fulfill({ json: { email: 'reviewer@example.test', role: 'annotator' } });
+    if (path === '/api/annotation/queue') return route.fulfill({ json: [{
+      id: 'item-1', expected_text: 'A sentence to review.', agora_text: 'A sentence to review.',
+      buzz_text: 'A sentence to review.', sentence_start_ms: 0, sentence_end_ms: 2000,
+      focus_start_ms: 0, focus_end_ms: 1000,
+    }] });
+    if (path.endsWith('/decision')) return route.fulfill({ status: 204 });
+    return route.fulfill({ status: 200, body: '' });
+  });
+  await page.goto(coachUrl);
+  const audio = page.locator('#annotator audio');
+  await expect(audio).toBeVisible();
+  await page.evaluate(() => {
+    window.annotationPauses = 0;
+    HTMLMediaElement.prototype.pause = function () { window.annotationPauses += 1; };
+  });
+
+  await page.getByRole('button', { name: 'Home' }).click();
+  await expect(page.locator('#annotator')).toBeHidden();
+  expect(await page.evaluate(() => window.annotationPauses)).toBeGreaterThan(0);
+
+  await page.getByRole('button', { name: 'Review', exact: true }).click();
+  await expect(audio).toBeVisible();
+  const beforeRefresh = await page.evaluate(() => window.annotationPauses);
+  await page.getByRole('button', { name: 'Refresh queue' }).click();
+  await expect.poll(() => page.evaluate(() => window.annotationPauses)).toBeGreaterThan(beforeRefresh);
+
+  const beforeDecision = await page.evaluate(() => window.annotationPauses);
+  await page.getByRole('button', { name: 'Save decision' }).click();
+  await expect(page.locator('#annotator audio')).toHaveCount(0);
+  expect(await page.evaluate(() => window.annotationPauses)).toBeGreaterThan(beforeDecision);
 });

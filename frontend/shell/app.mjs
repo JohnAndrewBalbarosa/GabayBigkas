@@ -6,7 +6,7 @@ import {
   renderLearnerFeedbackLoading,
 } from '../learner/feedback.mjs';
 import { LearnerCoachHandoff } from '../learner/coach-handoff.mjs';
-import { renderAnnotationQueue } from '../annotator/review.mjs';
+import { renderAnnotationQueue, stopAnnotationAudio } from '../annotator/review.mjs';
 
 const RESULT_POLL_INTERVAL_MS = 2_000;
 const RESULT_POLL_ATTEMPTS = 45;
@@ -33,6 +33,7 @@ function initializePage() {
   bindAuthentication();
   bindLearnerSession();
   bindAnnotatorQueue();
+  bindAnnotationAudioLifecycle();
   bindMobileMenu();
   bindHeroActions();
   renderLearnerStage('consent');
@@ -104,6 +105,7 @@ function bindAuthentication() {
   });
 
   document.querySelector('#logout').addEventListener('click', async event => {
+    stopAnnotationAudio(document.querySelector('#annotator'));
     event.currentTarget.disabled = true;
     state.flowEpoch += 1;
     try {
@@ -187,6 +189,7 @@ async function showWorkspace(role) {
   }
   for (const id of ['home', 'about', 'login', 'signup']) document.querySelector(`#${id}`).hidden = true;
   document.querySelectorAll('[data-public-page]').forEach(control => control.classList.remove('is-active'));
+  if (role !== 'annotator') stopAnnotationAudio(document.querySelector('#annotator'));
   document.querySelector('#learner').hidden = role !== 'learner';
   document.querySelector('#annotator').hidden = role !== 'annotator';
   document.querySelectorAll('[data-workspace]').forEach(control => {
@@ -196,8 +199,16 @@ async function showWorkspace(role) {
 }
 
 function hideWorkspaces() {
+  stopAnnotationAudio(document.querySelector('#annotator'));
   document.querySelector('#learner').hidden = true;
   document.querySelector('#annotator').hidden = true;
+}
+
+function bindAnnotationAudioLifecycle() {
+  window.addEventListener('pagehide', () => stopAnnotationAudio(document.querySelector('#annotator')));
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) stopAnnotationAudio(document.querySelector('#annotator'));
+  });
 }
 
 function bindLearnerSession() {
@@ -419,6 +430,7 @@ async function refreshAnnotatorWorkspace(button) {
     const count = await renderAnnotationQueue(api, container, setAnnotationStatus);
     summary.textContent = count === 1 ? '1 sentence waiting for review' : `${count} sentences waiting for review`;
   } catch (error) {
+    stopAnnotationAudio(container);
     container.replaceChildren();
     summary.textContent = 'The review queue could not be loaded.';
     setAnnotationStatus(userMessage(error), true);
