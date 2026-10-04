@@ -7,7 +7,7 @@ const state = { catalog: null, product: null, operation: null, result: null, liv
 async function boot() {
   try {
     const response = await fetch('/api/catalog');
-    if (!response.ok) throw new Error('Hindi ma-load ang catalog.');
+    if (!response.ok) throw new Error('The catalog could not be loaded.');
     state.catalog = await response.json();
     const { products, config } = state.catalog;
     setupRtc({ config, api });
@@ -16,7 +16,7 @@ async function boot() {
     $('operations-count').textContent = products.reduce((n, p) => n + p.operations.length, 0);
     $('schema-count').textContent = products.reduce((n, p) => n + p.operations.filter(o => o.validation !== 'partial').length, 0);
     $('mode').textContent = config.liveEnabled ? 'LIVE MODE ENABLED' : 'OFFLINE MODE';
-    $('notice').textContent = config.liveEnabled ? 'Enabled ang live requests. Bawat request ay manual; maaaring may usage charges ang live tasks.' : 'Offline mode — puwedeng mag-validate nang walang keys. Walang Agora API calls sa dry-run; hindi ito live verification.';
+    $('notice').textContent = config.liveEnabled ? 'Live requests are enabled. Every request is manual, and live tasks may incur usage charges.' : 'Offline mode — validate without keys. Dry runs make no Agora API calls and do not count as live verification.';
     $('readiness').textContent = JSON.stringify({ credentialsPresent: config.credentials, rtcConfigured: config.rtcReady, liveVerified: false }, null, 2);
     renderProducts();
     selectProduct(products[0]);
@@ -77,20 +77,20 @@ function selectOperation(operation) {
   $('request').value = available ? JSON.stringify(operation.input, null, 2) : '';
   $('operation-details').textContent = available ? `${operation.method} ${operation.server}${operation.path} · ${operation.validation === 'partial' ? 'PARTIAL VALIDATION — legacy reference' : 'OPENAPI CONTRACT'}` : state.product.note;
   $('schema').textContent = available ? JSON.stringify({ parameters: operation.parameters, bodySchema: operation.bodySchema, source: state.product.provenance }, null, 2) : state.product.note;
-  $('result').textContent = state.product.note || 'Wala pang request. Local validation muna bago ang live test.';
-  $('result-status').textContent = available ? 'HINDI PA NASUSUBUKAN' : 'SPECIALIZED SETUP';
+  $('result').textContent = state.product.note || 'No request yet. Run local validation before a live test.';
+  $('result-status').textContent = available ? 'NOT TESTED YET' : 'SPECIALIZED SETUP';
 }
 
 async function run(mode) {
   if (!state.operation) return;
   const operation = state.operation;
-  if (mode === 'live' && !window.confirm(`Ipadala ang ${operation.method} ${operation.label} sa Agora? Maaaring gumawa o magbago ng live resources. Itigil ang created tasks pagkatapos ng test.`)) return;
+  if (mode === 'live' && !window.confirm(`Send ${operation.method} ${operation.label} to Agora? This may create or change live resources. Stop any created tasks after the test.`)) return;
   $('dry-run').disabled = true; $('live-run').disabled = true;
   try {
     const input = JSON.parse($('request').value);
     state.result = await api('/api/execute', { ...input, operationId: operation.id, mode, ...(mode === 'live' ? { confirm: operation.id } : {}) });
     $('result').textContent = JSON.stringify(state.result, null, 2);
-    $('result-status').textContent = ({ 'dry-run': 'LOCAL VALIDATION LANG', invalid: 'AYUSIN ANG INPUT', blocked: 'KULANG ANG SETUP', 'live-response': 'LIVE RESPONSE RECEIVED', 'provider-error': 'PROVIDER ERROR', 'network-error': 'NETWORK ERROR' })[state.result.status];
+    $('result-status').textContent = ({ 'dry-run': 'LOCAL VALIDATION ONLY', invalid: 'FIX THE INPUT', blocked: 'SETUP REQUIRED', 'live-response': 'LIVE RESPONSE RECEIVED', 'provider-error': 'PROVIDER ERROR', 'network-error': 'NETWORK ERROR' })[state.result.status];
     if (state.result.status === 'live-response') $('live-count').textContent = ++state.liveResponses;
   } catch (error) { $('result-status').textContent = 'INPUT / REQUEST ERROR'; $('result').textContent = error.message; }
   finally { $('dry-run').disabled = !state.operation; $('live-run').disabled = !state.operation || !state.catalog.config.liveEnabled; }
@@ -104,7 +104,7 @@ async function api(path, body) {
 }
 
 function exportResult() {
-  if (!state.result) { $('result').textContent = 'Mag-run muna ng validation bago mag-export.'; return; }
+  if (!state.result) { $('result').textContent = 'Run validation before exporting.'; return; }
   const blob = new Blob([JSON.stringify({ generatedAt: new Date().toISOString(), operation: state.operation.id, result: state.result }, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a'); link.href = url; link.download = 'agora-test-result.json'; link.click();

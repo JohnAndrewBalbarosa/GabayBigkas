@@ -8,8 +8,8 @@ export class LearnerSession {
   }
 
   async start({ exerciseId, expectedPhrases, adultConsent }) {
-    if (this.active) throw new Error('May active session na. Tapusin muna ito bago magsimula ulit.');
-    if (adultConsent !== true) throw new Error('Kailangan ang adult consent bago mag-record.');
+    if (this.active) throw new Error('A session is already active. Finish it before starting another.');
+    if (adultConsent !== true) throw new Error('Adult consent is required before recording.');
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
     try {
       const session = await this.api.createSession({
@@ -29,7 +29,7 @@ export class LearnerSession {
         ),
       });
       this.active = { session, stream, recorder, transcriptSequence: 0 };
-      this.renderStatus('Recording na. Basahin ang prompt sa natural mong pace.');
+      this.renderStatus('Recording. Read the passage at your natural pace.');
       return { session, sharedMicrophoneStream: stream };
     } catch (error) {
       stopStream(stream);
@@ -38,7 +38,7 @@ export class LearnerSession {
   }
 
   async ingestAgoraTranscript({ text, startMs, endMs }) {
-    if (!this.active) throw new Error('Walang active practice session.');
+    if (!this.active) throw new Error('There is no active practice session.');
     await this.api.addAgoraTranscript(this.active.session.id, {
       sequence: this.active.transcriptSequence++,
       text,
@@ -48,7 +48,7 @@ export class LearnerSession {
   }
 
   async finish() {
-    if (!this.active) throw new Error('Walang active practice session.');
+    if (!this.active) throw new Error('There is no active practice session.');
     const active = this.active;
     this.active = null;
     try {
@@ -56,7 +56,7 @@ export class LearnerSession {
     } finally {
       stopStream(active.stream);
     }
-    this.renderStatus('Tapos na ang recording. Ipinapasa sa backend ang session…');
+    this.renderStatus('Recording finished. The session is being submitted to the backend…');
     const result = await this.api.finalizeSession(active.session.id);
     this.renderStatus(renderSessionStatus(result.status));
     return result;
@@ -71,21 +71,21 @@ export class LearnerSession {
     } finally {
       stopStream(active.stream);
     }
-    this.renderStatus('Itinigil ang recording at microphone access.');
+    this.renderStatus('Recording and microphone access stopped.');
   }
 }
 
 export function renderSessionStatus(status) {
   const labels = {
-    capturing: 'Aktibo pa ang recording session.',
-    preprocessing: 'Inihahanda ng backend ang session audio.',
-    review_ready: 'Handa na ang evidence para sa authorized human review.',
-    pending_manual_inference: 'Natanggap na ng backend ang audio. Tumatakbo ang background analysis.',
-    analysis_unavailable: 'Hindi natapos ang analysis sa bounded window; nilinis na ang temporary audio.',
-    model_unavailable: 'Hindi available ang private model worker. Ligtas na itinigil ang processing.',
-    failed: 'Hindi nakumpleto ang processing. Ipa-check sa administrator ang server diagnostics.',
+    capturing: 'The recording session is still active.',
+    preprocessing: 'The backend is preparing the session audio.',
+    review_ready: 'The evidence is ready for authorized human review.',
+    pending_manual_inference: 'The backend received the audio and is running background analysis.',
+    analysis_unavailable: 'Analysis did not finish within the bounded window; temporary audio was removed.',
+    model_unavailable: 'The private model worker is unavailable. Processing stopped safely.',
+    failed: 'Processing did not complete. Ask an administrator to check server diagnostics.',
   };
-  return labels[status] ?? 'Na-update ang session status.';
+  return labels[status] ?? 'The session status was updated.';
 }
 
 function stopStream(stream) {

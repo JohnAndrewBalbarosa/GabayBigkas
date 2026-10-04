@@ -19,7 +19,7 @@ test('product shell is responsive, self-contained, and honest about its evidence
 test('learner account sees only the learner workspace and backend-managed progress', async ({ page }) => {
   await page.route('**/api/auth/session', route => route.fulfill({ json: { email: 'learner@example.test', role: 'learner' } }));
   await page.goto(coachUrl);
-  await expect(page.getByRole('heading', { name: /One sentence/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /One passage/i })).toBeVisible();
   await expect(page.locator('#learner')).toBeVisible();
   await expect(page.locator('#annotator')).toBeHidden();
   await expect(page.getByRole('button', { name: 'Review' })).toBeHidden();

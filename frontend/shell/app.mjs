@@ -56,7 +56,7 @@ function bindMobileMenu() {
   toggle.addEventListener('click', () => {
     const open = toggle.getAttribute('aria-expanded') !== 'true';
     toggle.setAttribute('aria-expanded', String(open));
-    toggle.setAttribute('aria-label', open ? 'Isara ang navigation' : 'Buksan ang navigation');
+    toggle.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
     nav.classList.toggle('is-open', open);
   });
 }
@@ -64,7 +64,7 @@ function bindMobileMenu() {
 function closeMobileMenu() {
   const toggle = document.querySelector('#menu-toggle');
   toggle.setAttribute('aria-expanded', 'false');
-  toggle.setAttribute('aria-label', 'Buksan ang navigation');
+  toggle.setAttribute('aria-label', 'Open navigation');
   document.querySelector('#primary-nav').classList.remove('is-open');
 }
 
@@ -75,7 +75,7 @@ function bindAuthentication() {
     const input = new FormData(form);
     const status = document.querySelector('#login-status');
     const submit = form.querySelector('[type="submit"]');
-    status.textContent = 'Sinisigurado ang account…';
+    status.textContent = 'Checking your account…';
     submit.disabled = true;
     form.setAttribute('aria-busy', 'true');
     try {
@@ -96,10 +96,10 @@ function bindAuthentication() {
       try {
         await learner.cancel();
       } catch {
-        setLearnerStatus('Itinigil ang microphone; may pending audio upload na hindi nakumpleto.', true);
+        setLearnerStatus('The microphone stopped, but a pending audio upload was not completed.', true);
       }
       await api.logout();
-      clearAccount('Naka-log out ka na.');
+      clearAccount('You are now signed out.');
     } catch (error) {
       setPageStatus(userMessage(error), true);
     } finally {
@@ -162,7 +162,7 @@ function showPublicPage(page) {
 
 async function showWorkspace(role) {
   if (!state.account || state.account.role !== role) {
-    setPageStatus('Hindi authorized ang account para sa workspace na iyon.', true);
+    setPageStatus('This account is not authorized for that workspace.', true);
     return;
   }
   for (const id of ['home', 'about', 'login', 'signup']) document.querySelector(`#${id}`).hidden = true;
@@ -187,16 +187,16 @@ function bindLearnerSession() {
   const consent = document.querySelector('#adult-consent');
 
   consent.addEventListener('change', () => {
-    if (!learner.active) setLearnerStatus(consent.checked ? 'Ready na. Start recording kapag handa ka.' : 'Check consent when you are ready to begin.');
+    if (!learner.active) setLearnerStatus(consent.checked ? 'Ready. Start recording when you are prepared.' : 'Check consent when you are ready to begin.');
   });
 
   start.addEventListener('click', async () => {
     start.disabled = true;
-    setLearnerStatus('Humihingi ng microphone access…');
+    setLearnerStatus('Requesting microphone access…');
     try {
       const result = await learner.start({
-        exerciseId: 'mvp-guided-english',
-        expectedPhrases: [document.querySelector('#reading-prompt').textContent.trim()],
+        exerciseId: 'ph-constitution-preamble-1987',
+        expectedPhrases: guidedPassagePhrases(),
         adultConsent: consent.checked,
       });
       state.coachingSessionId = result.session.id;
@@ -230,7 +230,7 @@ function bindLearnerSession() {
   refresh.addEventListener('click', async () => {
     if (!state.coachingSessionId) return;
     refresh.disabled = true;
-    setLearnerStatus('Tinitingnan ang latest backend status…');
+    setLearnerStatus('Checking the latest backend status…');
     try {
       renderBackendSession(await api.coachingSession(state.coachingSessionId));
     } catch (error) {
@@ -264,6 +264,12 @@ function setLearnerStatus(message, error = false) {
   learnerStatus.style.color = error ? 'var(--danger)' : '';
 }
 
+function guidedPassagePhrases() {
+  return [...document.querySelectorAll('[data-passage-phrase]')]
+    .map((phrase) => phrase.textContent.trim())
+    .filter(Boolean);
+}
+
 function bindAnnotatorQueue() {
   document.querySelector('#refresh-queue').addEventListener('click', event => void refreshAnnotatorWorkspace(event.currentTarget));
 }
@@ -278,7 +284,7 @@ async function refreshAnnotatorWorkspace(button) {
     summary.textContent = count === 1 ? '1 sentence waiting for review' : `${count} sentences waiting for review`;
   } catch (error) {
     container.replaceChildren();
-    summary.textContent = 'Hindi ma-load ang queue.';
+    summary.textContent = 'The review queue could not be loaded.';
     setAnnotationStatus(userMessage(error), true);
   } finally {
     if (button) button.disabled = false;
@@ -300,12 +306,12 @@ function setPageStatus(message, error = false) {
 
 function userMessage(error) {
   const messages = {
-    unauthorized: 'Hindi valid ang session o login details. Pakisubukan ulit.',
-    forbidden: 'Walang permission ang account para sa action na ito.',
-    not_found: 'Hindi na makita ang requested item. I-refresh ang workspace.',
-    conflict: 'May kasalukuyang operation sa session. Hintayin muna itong matapos.',
-    model_unavailable: 'Hindi available ang private processing service sa ngayon.',
+    unauthorized: 'The session or login details are invalid. Please try again.',
+    forbidden: 'This account does not have permission for that action.',
+    not_found: 'The requested item could not be found. Refresh the workspace.',
+    conflict: 'Another session operation is in progress. Wait for it to finish.',
+    model_unavailable: 'The private processing service is currently unavailable.',
   };
-  if (error?.name === 'NotAllowedError') return 'Hindi pinayagan ang microphone. I-enable ito sa browser para makapag-record.';
-  return messages[error?.code] ?? error?.message ?? 'May hindi inaasahang error. Pakisubukan ulit.';
+  if (error?.name === 'NotAllowedError') return 'Microphone access was denied. Enable it in your browser to record.';
+  return messages[error?.code] ?? error?.message ?? 'An unexpected error occurred. Please try again.';
 }

@@ -128,7 +128,7 @@ function decisionForm(api, item, card, announce) {
         notes: notes.value.trim() || null,
       });
       card.remove();
-      announce('Nai-save ang review decision.');
+      announce('The review decision was saved.');
     } catch (error) {
       announce(error.message, true);
       submit.disabled = false;
@@ -158,7 +158,7 @@ function emptyQueue() {
   const heading = document.createElement('strong');
   heading.textContent = 'Review queue is clear';
   const detail = document.createElement('p');
-  detail.textContent = 'Walang pending sentence evidence sa ngayon.';
+  detail.textContent = 'There is no phrase evidence waiting for review.';
   empty.append(heading, detail);
   return empty;
 }
