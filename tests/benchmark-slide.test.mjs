@@ -48,6 +48,10 @@ test('slide fields do not turn read traffic into completed sessions or invent ab
   assert.equal(fields.peakVus, '100')
   assert.equal(fields.p99, '55 ms')
   assert.equal(fields.suite, 'Passed 2026-10-04')
+  for (const vus of [1, 10, 25, 50, 100]) {
+    assert.equal(fields[`stage${vus}`], `${vus} ${vus === 1 ? 'VU' : 'VUs'} · 20.0 req/s · p95 42 ms · p99 55 ms · 0% errors`)
+  }
+  assert.equal(absent.stage100, '100 VUs · Awaiting measured results')
   assert.equal(Object.values(fields).join(' ').includes('sessionToken'), false)
 })
 
@@ -60,6 +64,8 @@ test('stale suite state and stopped first stage remain explicit evidence', () =>
   assert.match(fields.suite, /Prior snapshot.*reverify/)
   assert.equal(fields.loadStatus, 'Stopped early')
   assert.equal(fields.requests, '300')
+  assert.match(fields.stage1, /Stopped early$/)
+  assert.match(fields.stage100, /Awaiting measured results$/)
   assert.match(fields.runCommit, /generator.*VPS version unrecorded/)
   report.outcome = 'preflight_failed'
   report.stopReason = 'fixture_preflight_failed'

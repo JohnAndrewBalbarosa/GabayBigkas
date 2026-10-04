@@ -2,16 +2,35 @@ import { test, expect } from '@playwright/test'
 import { readFileSync } from 'node:fs'
 
 const template = readFileSync(new URL('../../docs/pitch/gabaybigkas-semi-finals.html', import.meta.url), 'utf8')
+const measuredStages = {
+  stage1: '1 VU · 11.0 req/s · p95 93 ms · p99 111 ms · 0% errors',
+  stage10: '10 VUs · 113.6 req/s · p95 96 ms · p99 358 ms · 0% errors',
+  stage25: '25 VUs · 149.2 req/s · p95 89 ms · p99 188 ms · 0% errors',
+  stage50: '50 VUs · 147.4 req/s · p95 87 ms · p99 111 ms · 0% errors',
+  stage100: '100 VUs · 144.3 req/s · p95 86 ms · p99 101 ms · 0% errors',
+}
+
+function measuredDeck(extra = {}) {
+  const data = { ...measuredStages, ...extra }
+  return template.replace('<!-- BENCHMARK_SLIDE_DATA -->', `<script>window.GABAYBIGKAS_SLIDE_DATA=${JSON.stringify(data).replaceAll('<', '\\u003c')}</script>`)
+}
 
 test('self-contained pitch deck navigates all slides and renders benchmark evidence safely', async ({ page }) => {
   const errors = []
   const requests = []
   page.on('pageerror', (error) => errors.push(error.message))
   page.on('request', (request) => requests.push(request.url()))
-  await page.setContent(template.replace('<!-- BENCHMARK_SLIDE_DATA -->', '<script>window.GABAYBIGKAS_SLIDE_DATA={suite:"Passed 2026-10-04",loadStatus:"Stopped early",rps:"12.3",p95:"42 ms",p99:"55 ms",runNote:"<img src=x onerror=alert(1)>"}</script>'))
-  await expect(page.locator('.slide')).toHaveCount(15)
+  await page.setContent(measuredDeck({ suite: 'Passed 2026-10-04', loadStatus: 'Stopped early', rps: '12.3', p95: '42 ms', p99: '55 ms', runNote: '<img src=x onerror=alert(1)>' }))
+  await expect(page.locator('.slide')).toHaveCount(16)
   await page.keyboard.press('End')
-  await expect(page.locator('.slide.active')).toHaveAttribute('aria-label', 'Slide 15 of 15')
+  await expect(page.locator('.slide.active')).toHaveAttribute('aria-label', 'Slide 16 of 16')
+  for (const [field, expected] of Object.entries(measuredStages)) {
+    await expect(page.locator(`[data-slide-field="${field}"]`)).toHaveText(expected)
+  }
+  await expect(page.locator('.slide.active')).toContainText('VUs = Virtual Users')
+  await expect(page.locator('.slide.active')).toContainText('hindi ito 100 distinct learner accounts')
+  await page.keyboard.press('ArrowLeft')
+  await expect(page.locator('.slide.active')).toHaveAttribute('aria-label', 'Slide 15 of 16')
   await expect(page.locator('[data-slide-field="rps"]')).toHaveText('12.3')
   await expect(page.locator('[data-slide-field="p99"]')).toHaveText('55 ms')
   await expect(page.locator('[data-slide-field="runNote"]')).toHaveText('<img src=x onerror=alert(1)>')
@@ -21,9 +40,9 @@ test('self-contained pitch deck navigates all slides and renders benchmark evide
   await expect(page.locator('#notes-copy')).toContainText('Spot GPU is not deployed')
   await page.keyboard.press('n')
   await page.keyboard.press('ArrowLeft')
-  await expect(page.locator('.slide.active')).toHaveAttribute('aria-label', 'Slide 14 of 15')
+  await expect(page.locator('.slide.active')).toHaveAttribute('aria-label', 'Slide 14 of 16')
   await page.keyboard.press('Home')
-  await expect(page.locator('.slide.active')).toHaveAttribute('aria-label', 'Slide 1 of 15')
+  await expect(page.locator('.slide.active')).toHaveAttribute('aria-label', 'Slide 1 of 16')
   expect(errors).toEqual([])
   expect(requests).toEqual([])
 })
@@ -31,9 +50,9 @@ test('self-contained pitch deck navigates all slides and renders benchmark evide
 for (const viewport of [{ width: 1920, height: 1080 }, { width: 1366, height: 768 }, { width: 390, height: 844 }]) {
   test(`evidence slide stays readable at ${viewport.width} × ${viewport.height}`, async ({ page }) => {
     await page.setViewportSize(viewport)
-    await page.setContent(template)
+    await page.setContent(measuredDeck())
     await page.keyboard.press('End')
-    await expect(page.locator('.slide.active')).toHaveAttribute('aria-label', 'Slide 15 of 15')
+    await expect(page.locator('.slide.active')).toHaveAttribute('aria-label', 'Slide 16 of 16')
     const layout = await page.locator('.slide.active').evaluate((slide) => ({
       width: slide.clientWidth, height: slide.clientHeight,
       scrollWidth: slide.scrollWidth, scrollHeight: slide.scrollHeight,

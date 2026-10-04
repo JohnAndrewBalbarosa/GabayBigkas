@@ -16,6 +16,11 @@ export function slideFields(state, report, sourceHash) {
   const measured = Boolean(peak)
   const suiteCurrent = state.suiteSourceHash && state.suiteSourceHash === sourceHash
   return {
+    ...Object.fromEntries([1, 10, 25, 50, 100].map((vus) => {
+      const stage = report?.stages.find((candidate) => candidate.vus === vus)
+      const label = `${vus} ${vus === 1 ? 'VU' : 'VUs'}`
+      return [`stage${vus}`, stage?.requests > 0 ? formatStageMetrics(stage, label) : `${label} · Awaiting measured results`]
+    })),
     suite: state.suitePassedAt ? `${suiteCurrent ? 'Passed' : 'Prior snapshot passed'} ${state.suitePassedAt.slice(0, 10)}${suiteCurrent ? '' : '; reverify changes'}` : 'Awaiting full verification',
     loadStatus: report?.outcome === 'preflight_failed' ? 'Fixture preflight failed' : report?.outcome === 'stopped' ? 'Stopped early' : measured ? 'Measured live' : 'Awaiting live run',
     peakVus: measured ? String(peak.vus) : '—',
@@ -30,6 +35,10 @@ export function slideFields(state, report, sourceHash) {
       ? `Three learner GETs; max ${report.maxRps} RPS; ${report.outcome === 'passed' ? 'all stages completed' : report.stopReason}.`
       : 'Performance fields fill after an approved, authenticated live run.',
   }
+}
+
+function formatStageMetrics(stage, label) {
+  return `${label} · ${stage.rps.toFixed(1)} req/s · p95 ${stage.p95Ms} ms · p99 ${stage.p99Ms} ms · ${stage.errorRatePercent}% errors${stage.completed ? '' : ' · Stopped early'}`
 }
 
 export function validateReport(report) {

@@ -371,6 +371,10 @@
     .benchmark-slide .card p { font-size: 16px; }
     .benchmark-slide .evidence-row { align-items: flex-start; font-size: 14px; }
     .benchmark-slide .evidence-row > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+    .benchmark-stage { margin: 0; padding: 16px 22px; border-bottom: 1px solid var(--line); font-size: clamp(16px, 1.65vw, 26px); font-weight: 700; }
+    .benchmark-stage:first-child { color: var(--mint); }
+    .benchmark-stages { margin-bottom: 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); overflow: hidden; }
+    .benchmark-stage:last-child { border-bottom: 0; }
 
     .final-lockup { max-width: 980px; }
     .final-lockup h2 { font-size: clamp(58px, 8vw, 124px); }
@@ -486,7 +490,7 @@
 </head>
 <body>
   <main class="deck" aria-live="polite">
-    <section class="slide active" data-seconds="15" aria-label="Slide 1 of 15">
+    <section class="slide active" data-seconds="15" aria-label="Slide 1 of 16">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Agora Track · Voice First</div></header>
       <div class="content">
         <p class="eyebrow">Your voice, your guide.</p>
@@ -497,7 +501,7 @@
       <aside class="speaker-notes">Hook: “You know what you want to say. But when you are unsure of your pronunciation, hesitation often speaks first.” Then introduce GabayBigkas in one sentence.</aside>
     </section>
 
-    <section class="slide" data-seconds="25" aria-label="Slide 2 of 15">
+    <section class="slide" data-seconds="25" aria-label="Slide 2 of 16">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Problem · Education</div></header>
       <div class="content">
         <p class="eyebrow">A national learning gap · a global economic stake</p>
@@ -512,7 +516,7 @@
       <aside class="speaker-notes">Frame this as a skills-and-opportunity gap, not a claim that Filipinos broadly lack literacy. OECD reports that 24% of Filipino 15-year-olds reached Level 2 or higher in reading versus 74% across OECD countries. IBPAP projected 1.82 million workers, $38 billion revenue, and 18% global IT-BPM market share for 2024. The DTI Philippine Export Development Plan describes the country as having the largest number of call-center agents and the overall IT-BPM business as second-largest after India. Connect the evidence carefully: communication skills matter to a globally significant service economy, but these figures do not prove that pronunciation alone determines employability.</aside>
     </section>
 
-    <section class="slide" data-seconds="25" aria-label="Slide 3 of 15">
+    <section class="slide" data-seconds="25" aria-label="Slide 3 of 16">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">The Solution</div></header>
       <div class="content">
         <p class="eyebrow">Prompt → Speak → Compare → Guide → Retry</p>
@@ -529,7 +533,7 @@
       <aside class="speaker-notes">Walk through the five-step loop. In the learner experience, transcript disagreement is the operational signal used to deliver guidance immediately. The learner repeats the attempt until the two transcripts agree.</aside>
     </section>
 
-    <section class="slide" data-seconds="25" aria-label="Slide 4 of 15">
+    <section class="slide" data-seconds="25" aria-label="Slide 4 of 16">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Strategic Integration</div></header>
       <div class="content split">
         <div>
@@ -549,7 +553,7 @@
       <aside class="speaker-notes">Connect directly to the voice-first deduction rule. Agora is essential because the product starts with a live speaking interaction, not a form or text workflow.</aside>
     </section>
 
-    <section class="slide" data-seconds="50" aria-label="Slide 5 of 15">
+    <section class="slide" data-seconds="50" aria-label="Slide 5 of 16">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Live Demo</div></header>
       <div class="content">
         <p class="eyebrow">Show, don’t tell · drop screenshots here</p>
@@ -575,7 +579,7 @@
       <aside class="speaker-notes">Demo sequence: (1) let the AI coach present an institution-aligned prompt; (2) show the Agora voice session and captured transcript; (3) show the deterministic transcript difference, trusted pronunciation guide or YouTube resource, and the learner retry. Label any unimplemented screen as a prototype. Do not show credentials, tokens, channel IDs, or personal data.</aside>
     </section>
 
-    <section class="slide" data-seconds="35" aria-label="Slide 6 of 15">
+    <section class="slide" data-seconds="35" aria-label="Slide 6 of 16">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Technical Implementation</div></header>
       <div class="content">
         <p class="eyebrow">One voice session · two evidence paths</p>
@@ -592,7 +596,7 @@
       <aside class="speaker-notes">Highlight implementation depth: Axum API, SQLite, private filesystem audio, AudioWorklet capture, duration-preserving preprocessing, and private Modal T4 inference with a pinned BuzzASR revision. Describe BuzzASR as the selected Filipino/Tagalog-capable comparator; do not claim superior accuracy until benchmarks exist.</aside>
     </section>
 
-    <section class="slide" data-seconds="25" aria-label="Slide 7 of 15">
+    <section class="slide" data-seconds="25" aria-label="Slide 7 of 16">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Innovation + Judgment</div></header>
       <div class="content split">
         <div>
@@ -609,7 +613,7 @@
       <aside class="speaker-notes">Be precise about the confusion matrix. This weekly audit samples agreement cases, which are negative predictions. Human review can therefore classify each sample only as a true negative or false negative. A confirmed false negative triggers a learner notification and becomes labeled evidence for improving the models or comparison policy.</aside>
     </section>
 
-    <section class="slide" data-seconds="20" aria-label="Slide 8 of 15">
+    <section class="slide" data-seconds="20" aria-label="Slide 8 of 16">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">MVP Evidence</div></header>
       <div class="content split">
         <div>
@@ -626,7 +630,7 @@
       <aside class="speaker-notes">Say exactly what is working today. A live session reached the private T4, completed BuzzASR inference, returned to Rust, passed validation, and cleaned temporary audio. The Agora text-coach and YouTube guidance handoff remains the next integration gate; do not present it as complete until the UI drives the whole flow.</aside>
     </section>
 
-    <section class="slide" data-seconds="15" aria-label="Slide 9 of 15">
+    <section class="slide" data-seconds="15" aria-label="Slide 9 of 16">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Sustainability + Growth</div></header>
       <div class="content">
         <p class="eyebrow">Grow from one proven learning loop</p>
@@ -641,7 +645,7 @@
       <aside class="speaker-notes">Business path: validate with educators, measure whether focused review saves time and improves practice completion, then design institutional deployment and pricing from pilot evidence.</aside>
     </section>
 
-    <section class="slide" data-seconds="5" aria-label="Slide 10 of 15">
+    <section class="slide" data-seconds="5" aria-label="Slide 10 of 16">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Thank You</div></header>
       <div class="content final-lockup">
         <p class="eyebrow">Listen. Practice. Speak.</p>
@@ -652,7 +656,7 @@
       <aside class="speaker-notes">Close with the product promise, then stop. Move immediately to Q&amp;A.</aside>
     </section>
 
-    <section class="slide" data-seconds="0" aria-label="Slide 11 of 15">
+    <section class="slide" data-seconds="0" aria-label="Slide 11 of 16">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Appendix · Live Evidence</div></header>
       <div class="content split">
         <div>
@@ -671,7 +675,7 @@
       <aside class="speaker-notes">Use this only when judges ask what is live. The observed production sequence was modal inference started, Modal model ready, inference completed, validated result imported, and temporary audio cleaned. Avoid treating one 32-second observation as a latency benchmark.</aside>
     </section>
 
-    <section class="slide" data-seconds="0" aria-label="Slide 12 of 15">
+    <section class="slide" data-seconds="0" aria-label="Slide 12 of 16">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Appendix · Trust by Design</div></header>
       <div class="content">
         <p class="eyebrow">Useful evidence without automated judgment</p>
@@ -686,7 +690,7 @@
       <aside class="speaker-notes">Use this slide for safety, ethics, or accuracy questions. Emphasize that accent, noise, vocabulary, and code-switching can create transcript mismatches. The product supports practice and review; it does not diagnose a learner.</aside>
     </section>
 
-    <section class="slide" data-seconds="0" aria-label="Slide 13 of 15">
+    <section class="slide" data-seconds="0" aria-label="Slide 13 of 16">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Appendix · Pilot + Ask</div></header>
       <div class="content">
         <p class="eyebrow">Turn the MVP into measurable classroom value</p>
@@ -701,7 +705,7 @@
       <aside class="speaker-notes">Use this slide for business-model or go-to-market questions. Do not invent pricing or market size. The immediate ask is access to a bounded pilot where educator time saved and learner practice completion can be measured.</aside>
     </section>
 
-    <section class="slide" data-seconds="0" aria-label="Slide 14 of 15">
+    <section class="slide" data-seconds="0" aria-label="Slide 14 of 16">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Appendix · Evidence Architecture</div></header>
       <div class="content">
         <p class="eyebrow">One learner voice · two independent ASR signals · one human decision</p>
@@ -717,7 +721,7 @@
       <aside class="speaker-notes">Neither ASR model automatically diagnoses pronunciation. BuzzASR/filipino is fine-tuned for Filipino-language recognition, not validated on Filipino-accented English. Reviewed, consented cases could support future model adaptation after data-quality and held-out evaluation gates.</aside>
     </section>
 
-    <section class="slide benchmark-slide" data-seconds="0" aria-label="Slide 15 of 15">
+    <section class="slide benchmark-slide" data-seconds="0" aria-label="Slide 15 of 16">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Appendix · Cost × Measured Capacity</div></header>
       <div class="content">
         <p class="eyebrow">Small-case economics · list-price illustration + live read evidence</p>
@@ -735,6 +739,25 @@
       </div>
       <footer class="slide-foot"><span>Illustrations ≠ bill · Reads ≠ completed sessions · <a href="https://docs.aws.amazon.com/lightsail/latest/userguide/amazon-lightsail-bundles.html">AWS prices</a> · <a href="https://modal.com/pricing">Modal prices</a></span><span class="slide-time">Q&amp;A</span></footer>
       <aside class="speaker-notes">The three prices are illustrative and exclude Modal CPU/RAM, EBS, network, Agora, tax, and credits. Spot GPU is not deployed. Only the live-read row comes from the stress runner; it cannot prove completed-session cost or priority-queue/SSD-spill gains. Quote the run date and commit, and compare at the same latency/error budget.</aside>
+    </section>
+    <section class="slide benchmark-slide" data-seconds="0" aria-label="Slide 16 of 16">
+      <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Appendix · VPS Stress Test</div></header>
+      <div class="content">
+        <p class="eyebrow">Local load generator → actual VPS · authenticated learner reads</p>
+        <h2>Five load stages. <span class="accent">Measured results.</span></h2>
+        <div class="benchmark-stages" aria-label="VPS benchmark stages">
+          <p class="benchmark-stage" data-slide-field="stage1">1 VU · Awaiting measured results</p>
+          <p class="benchmark-stage" data-slide-field="stage10">10 VUs · Awaiting measured results</p>
+          <p class="benchmark-stage" data-slide-field="stage25">25 VUs · Awaiting measured results</p>
+          <p class="benchmark-stage" data-slide-field="stage50">50 VUs · Awaiting measured results</p>
+          <p class="benchmark-stage" data-slide-field="stage100">100 VUs · Awaiting measured results</p>
+        </div>
+        <p class="micro"><strong>VUs = Virtual Users:</strong> mga sabay-sabay na simulated clients na paulit-ulit na nagpapadala ng read requests. Isang test learner at owned session ang shared fixture; hindi ito 100 distinct learner accounts.</p>
+        <p class="micro"><strong>req/s:</strong> requests bawat segundo. <strong>p95 / p99:</strong> 95% / 99% ng requests ay natapos sa loob ng latency na ito. Bawat stage: 15 seconds of request admission; cap: 150 req/s.</p>
+        <p class="micro">Run: <span data-slide-field="runDate">No live benchmark yet</span> · <span data-slide-field="loadStatus">Awaiting live run</span>. Workload: auth session, owned coaching session, at owned result—tatlong GET routes.</p>
+      </div>
+      <footer class="slide-foot"><span>Read capacity only · Completed coaching sessions require separate measurement</span><span class="slide-time">Q&amp;A</span></footer>
+      <aside class="speaker-notes">VUs means concurrent simulated clients, not distinct learner identities. The generator ran locally against the actual VPS using one existing test learner and owned session. Each worker cycles through three authenticated GET routes. The five rows are measured stages, with the run date and status shown. Request throughput is capped at 150 req/s, so these results do not establish the VPS maximum capacity or complete coaching-session capacity. p95 and p99 describe observed request latency percentiles.</aside>
     </section>
   </main>
 
