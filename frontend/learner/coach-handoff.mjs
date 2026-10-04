@@ -96,13 +96,14 @@ export function waitForAgentJoin(rtc, agentUid) {
   });
 }
 
-function waitForAssistantResponse(voiceAi, agentUid, toolkit) {
+export function waitForAssistantResponse(voiceAi, agentUid, toolkit) {
   const { AgoraVoiceAIEvents, TurnStatus } = toolkit;
   let timer;
   let playbackFallback;
   let transcriptHandler;
   let stateHandler;
   let errorHandler;
+  let messageErrorHandler;
   let rejectResponse;
   let finalReply;
   let heardSpeech = false;
@@ -124,9 +125,18 @@ function waitForAssistantResponse(voiceAi, agentUid, toolkit) {
       if (event?.state === 'silent' && heardSpeech && finalReply) resolve(finalReply.text.trim());
     };
     errorHandler = (_uid, error) => reject(new Error(error?.message || 'The AI coach reported an error.'));
+    messageErrorHandler = (uid, error) => {
+      if (String(uid) !== agentUid) return;
+      const code = Number.isFinite(error?.code) ? ` (${error.code})` : '';
+      const detail = typeof error?.message === 'string' && error.message.trim()
+        ? `: ${error.message.trim()}`
+        : '';
+      reject(new Error(`The AI coach message failed${code}${detail}`));
+    };
     voiceAi.on(AgoraVoiceAIEvents.TRANSCRIPT_UPDATED, transcriptHandler);
     voiceAi.on(AgoraVoiceAIEvents.AGENT_STATE_CHANGED, stateHandler);
     voiceAi.on(AgoraVoiceAIEvents.AGENT_ERROR, errorHandler);
+    voiceAi.on(AgoraVoiceAIEvents.MESSAGE_ERROR, messageErrorHandler);
     timer = setTimeout(
       () => reject(new Error('The AI coach did not respond within one minute.')),
       ASSISTANT_RESPONSE_TIMEOUT_MS,
@@ -139,6 +149,7 @@ function waitForAssistantResponse(voiceAi, agentUid, toolkit) {
       voiceAi.off(AgoraVoiceAIEvents.TRANSCRIPT_UPDATED, transcriptHandler);
       voiceAi.off(AgoraVoiceAIEvents.AGENT_STATE_CHANGED, stateHandler);
       voiceAi.off(AgoraVoiceAIEvents.AGENT_ERROR, errorHandler);
+      voiceAi.off(AgoraVoiceAIEvents.MESSAGE_ERROR, messageErrorHandler);
     }),
     cancel: (reason = new Error('The AI coach connection was closed.')) => rejectResponse(reason),
   };

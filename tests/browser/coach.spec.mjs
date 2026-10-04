@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 
 const coachUrl = 'http://127.0.0.1:4316';
 
@@ -24,6 +25,39 @@ test('learner account sees only the learner workspace and backend-managed progre
   await expect(page.locator('#annotator')).toBeHidden();
   await expect(page.getByRole('button', { name: 'Review' })).toBeHidden();
   await expect(page.getByText(/temporary full-session audio/i)).toBeVisible();
+});
+
+test('learner feedback shows the transcript, coach note, focus word, and video together', async ({ page }) => {
+  const feedbackSource = await readFile(
+    new URL('../../frontend/learner/feedback.mjs', import.meta.url),
+    'utf8',
+  );
+  await page.setContent(`
+    <section id="feedback-container" hidden>
+      <div id="feedback-loading" hidden></div>
+      <span id="feedback-spinner"></span>
+      <div id="feedback-content" hidden>
+        <article class="coach-card"><h3>Coach note</h3><p id="ai-coach-response"></p></article>
+        <div id="practice-items"></div>
+      </div>
+    </section>
+  `);
+  await page.evaluate(async ({ source }) => {
+    const url = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
+    const { renderLearnerFeedback } = await import(url);
+    renderLearnerFeedback(document, {
+      status: 'ready',
+      words_to_practice: ['very'],
+      coach_message: 'Keep the lower lip relaxed and let the voice vibrate.',
+      youtube_resources: [{ title: 'V sound practice', video_id: 'abcdefghijk' }],
+    }, 'Beri good video.');
+    URL.revokeObjectURL(url);
+  }, { source: feedbackSource });
+
+  await expect(page.getByText('Transcript: “Beri good video.”')).toBeVisible();
+  await expect(page.getByText(/Keep the lower lip relaxed/)).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'very' })).toBeVisible();
+  await expect(page.getByTitle('very: V sound practice')).toBeVisible();
 });
 
 test('annotator can submit every backend decision field from private sentence evidence', async ({ page }) => {

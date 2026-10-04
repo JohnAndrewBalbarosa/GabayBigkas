@@ -15,7 +15,7 @@ export function youtubeEmbedUrl(videoId) {
   return YOUTUBE_VIDEO_ID.test(videoId) ? `https://www.youtube-nocookie.com/embed/${videoId}` : null;
 }
 
-export function renderLearnerFeedback(root, payload) {
+export function renderLearnerFeedback(root, payload, transcript = '') {
   const feedback = normalizeLearnerFeedback(payload);
   const section = root.querySelector('#feedback-container');
   const loading = root.querySelector('#feedback-loading');
@@ -29,8 +29,10 @@ export function renderLearnerFeedback(root, payload) {
   practice.replaceChildren();
   if (!feedback) {
     coach.textContent = '';
+    renderLearnerTranscript(root, '');
     return;
   }
+  renderLearnerTranscript(root, transcript);
   coach.textContent = feedback.coachMessage;
   practice.replaceChildren(...feedback.practiceItems.map(renderPracticeItem));
   if (!feedback.practiceItems.length) {
@@ -38,7 +40,7 @@ export function renderLearnerFeedback(root, payload) {
   }
 }
 
-export function renderLearnerFeedbackPreview(root, words, detail) {
+export function renderLearnerFeedbackPreview(root, words, detail, transcript = '') {
   const normalizedWords = normalizePracticeWords(words);
   const section = root.querySelector('#feedback-container');
   const practice = root.querySelector('#practice-items');
@@ -46,6 +48,7 @@ export function renderLearnerFeedbackPreview(root, words, detail) {
   section.setAttribute('aria-busy', 'true');
   root.querySelector('#feedback-loading').hidden = true;
   root.querySelector('#feedback-content').hidden = false;
+  renderLearnerTranscript(root, transcript);
   root.querySelector('#ai-coach-response').textContent = detail;
   practice.replaceChildren(...normalizedWords.map(word => renderPracticeItem({ word, resource: null }, true)));
   if (!normalizedWords.length) {
@@ -87,6 +90,21 @@ function normalizeYoutubeResource(item) {
 
 function isBoundedText(value, maximum) {
   return typeof value === 'string' && value.trim().length > 0 && value.length <= maximum;
+}
+
+function renderLearnerTranscript(root, transcript) {
+  const coach = root.querySelector('#ai-coach-response');
+  const card = coach.closest('.coach-card');
+  let note = card.querySelector('[data-learner-transcript]');
+  if (!note) {
+    note = (root.ownerDocument ?? root).createElement('p');
+    note.className = 'coach-note';
+    note.dataset.learnerTranscript = '';
+    card.insertBefore(note, coach);
+  }
+  const normalized = isBoundedText(transcript, 4000) ? transcript.trim() : '';
+  note.hidden = !normalized;
+  note.textContent = normalized ? `Transcript: “${normalized}”` : '';
 }
 
 function renderPracticeItem(item, pending = false) {

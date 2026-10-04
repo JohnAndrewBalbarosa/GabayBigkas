@@ -10,7 +10,7 @@ import {
 } from '../frontend/learner/feedback.mjs';
 import { LearnerSession, renderSessionStatus } from '../frontend/learner/session.mjs';
 import { attachCoachAudio } from '../frontend/learner/coach-audio.mjs';
-import { waitForAgentJoin } from '../frontend/learner/coach-handoff.mjs';
+import { waitForAgentJoin, waitForAssistantResponse } from '../frontend/learner/coach-handoff.mjs';
 
 test('PCM conversion clamps browser samples to signed 16-bit values', () => {
   const pcm = float32ToPcm16(new Float32Array([-2, -1, 0, 1, 2]));
@@ -55,6 +55,31 @@ test('coach request waits for the owned agent to join the RTC channel', async ()
   joined({ uid: 1001 });
   await ready;
   assert.deepEqual(calls, [['on', 'user-joined'], ['off', 'user-joined', true]]);
+});
+
+test('coach response surfaces the matching Agora RTM message failure and releases listeners', async () => {
+  const handlers = new Map();
+  const removed = [];
+  const events = {
+    TRANSCRIPT_UPDATED: 'transcript',
+    AGENT_STATE_CHANGED: 'state',
+    AGENT_ERROR: 'agent-error',
+    MESSAGE_ERROR: 'message-error',
+  };
+  const voiceAi = {
+    on: (event, handler) => handlers.set(event, handler),
+    off: (event, handler) => removed.push([event, handlers.get(event) === handler]),
+  };
+  const response = waitForAssistantResponse(voiceAi, '1001', {
+    AgoraVoiceAIEvents: events,
+    TurnStatus: { END: 'end' },
+  });
+
+  handlers.get(events.MESSAGE_ERROR)('999', { code: 1, message: 'ignore another agent' });
+  handlers.get(events.MESSAGE_ERROR)('1001', { code: 13001, message: 'RTM publish failed' });
+
+  await assert.rejects(response.promise, /message failed \(13001\): RTM publish failed/);
+  assert.deepEqual(removed, Object.values(events).map(event => [event, true]));
 });
 
 test('one safe video remains attached to the first focus word', () => {

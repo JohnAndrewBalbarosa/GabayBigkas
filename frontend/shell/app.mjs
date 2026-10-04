@@ -300,7 +300,7 @@ async function runLearnerFlow() {
     if (flowEpoch !== state.flowEpoch) return;
     renderBackendSession(result);
     if (result.coach_feedback) {
-      renderLearnerFeedback(document, result.coach_feedback);
+      renderLearnerFeedback(document, result.coach_feedback, result.transcription?.text);
       return;
     }
     if (result.status !== 'review_ready') {
@@ -311,6 +311,7 @@ async function runLearnerFlow() {
       document,
       result.practice_words,
       'Your word evidence is ready. The AI coach will connect after this review is visible.',
+      result.transcription?.text,
     );
     await waitForNextPaint();
     const health = await api.health();
@@ -324,18 +325,24 @@ async function runLearnerFlow() {
       return;
     }
     state.coachHandoff = new LearnerCoachHandoff((message) => {
-      renderLearnerFeedbackPreview(document, result.practice_words, message);
+      renderLearnerFeedbackPreview(
+        document,
+        result.practice_words,
+        message,
+        result.transcription?.text,
+      );
     });
-    await state.coachHandoff.requestCoachResponse(credentials);
+    const coachMessage = await state.coachHandoff.requestCoachResponse(credentials);
     if (flowEpoch !== state.flowEpoch) return;
     renderLearnerFeedbackPreview(
       document,
       result.practice_words,
-      'The coach response is being validated before the video recommendation is shown.',
+      coachMessage,
+      result.transcription?.text,
     );
     const feedback = await createFeedbackWithBoundedWait(sessionId);
     if (flowEpoch !== state.flowEpoch) return;
-    renderLearnerFeedback(document, feedback);
+    renderLearnerFeedback(document, feedback, result.transcription?.text);
     setLearnerStatus('Your AI practice guide is ready.');
     renderLearnerStage('review');
   } catch (error) {
