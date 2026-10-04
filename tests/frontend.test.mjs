@@ -5,6 +5,7 @@ import { float32ToPcm16 } from '../frontend/voice/capture/pcm.mjs';
 import { CoachApi } from '../frontend/transport/coach-api.mjs';
 import { normalizeLearnerFeedback, youtubeEmbedUrl } from '../frontend/learner/feedback.mjs';
 import { LearnerSession, renderSessionStatus } from '../frontend/learner/session.mjs';
+import { attachCoachAudio } from '../frontend/learner/coach-audio.mjs';
 
 test('PCM conversion clamps browser samples to signed 16-bit values', () => {
   const pcm = float32ToPcm16(new Float32Array([-2, -1, 0, 1, 2]));
@@ -16,12 +17,60 @@ test('learner feedback accepts the bounded Rust response shape', () => {
     status: 'ready',
     words_to_practice: ['think', 'fifty'],
     coach_message: 'Practice slowly before increasing speed.',
-    youtube_resources: [{ title: 'TH practice', video_id: 'abcdefghijk' }],
+    youtube_resources: [
+      { title: 'TH practice', video_id: 'abcdefghijk' },
+      { title: 'F practice', video_id: '12345678901' },
+    ],
   });
 
   assert.deepEqual(feedback.words, ['think', 'fifty']);
   assert.equal(feedback.resources[0].videoId, 'abcdefghijk');
+  assert.equal(feedback.practiceItems[0].word, 'think');
+  assert.equal(feedback.practiceItems[0].resource.videoId, 'abcdefghijk');
+  assert.equal(feedback.practiceItems[1].resource.videoId, '12345678901');
   assert.equal(youtubeEmbedUrl('abcdefghijk'), 'https://www.youtube-nocookie.com/embed/abcdefghijk');
+});
+
+test('one safe video remains attached to the first focus word', () => {
+  const feedback = normalizeLearnerFeedback({
+    status: 'ready',
+    words_to_practice: ['comfortable', 'presenting'],
+    coach_message: 'Read the phrase at a steady pace.',
+    youtube_resources: [{ title: 'Practice guide', video_id: 'abcdefghijk' }],
+  });
+  assert.equal(feedback.practiceItems[0].resource.videoId, 'abcdefghijk');
+  assert.equal(feedback.practiceItems[1].resource, null);
+});
+
+test('coach audio subscribes only to the session agent and releases its listener', async () => {
+  const calls = [];
+  let handler;
+  const rtc = {
+    on: (event, listener) => { assert.equal(event, 'user-published'); handler = listener; },
+    off: (event, listener) => { calls.push(['off', event, listener === handler]); },
+    subscribe: async (user, mediaType) => { calls.push(['subscribe', user.uid, mediaType]); },
+  };
+  const release = attachCoachAudio(rtc, '1001', message => calls.push(['stage', message]), error => { throw error; });
+  await handler({ uid: 999, audioTrack: { play: () => calls.push(['wrong']) } }, 'audio');
+  await handler({ uid: 1001 }, 'video');
+  await handler({ uid: 1001, audioTrack: { play: () => calls.push(['play']) } }, 'audio');
+  release();
+  assert.deepEqual(calls[0], ['subscribe', 1001, 'audio']);
+  assert.deepEqual(calls[1], ['play']);
+  assert.deepEqual(calls.at(-1), ['off', 'user-published', true]);
+});
+
+test('coach audio reports a failed subscription', async () => {
+  let handler;
+  let failure;
+  attachCoachAudio({
+    on: (_event, listener) => { handler = listener; },
+    off: () => {},
+    subscribe: async () => { throw new Error('provider detail'); },
+  }, '1001', () => {}, error => { failure = error; });
+  await handler({ uid: 1001 }, 'audio');
+  assert.match(failure.message, /could not play/i);
+  assert.doesNotMatch(failure.message, /provider detail/);
 });
 
 test('learner feedback rejects object-shaped words, untrusted video IDs, and malformed output', () => {
@@ -57,14 +106,36 @@ test('session lookup encodes the ID and includes the secure session cookie', asy
   assert.equal(request.options.credentials, 'include');
 });
 
-test('coach feedback sends only the backend-owned agent identifier', async () => {
+test('coach feedback uses the session-owned agent without accepting a browser agent ID', async () => {
   const request = await captureRequest(
-    () => new CoachApi('https://api.example').createCoachFeedback('session/1', 'agent-7'),
+    () => new CoachApi('https://api.example').createCoachFeedback('session/1'),
     { status: 'ready', words_to_practice: [], youtube_resources: [], coach_message: 'Ready.' },
   );
   assert.equal(request.url, 'https://api.example/api/coaching/sessions/session%2F1/coach-feedback');
   assert.equal(request.options.method, 'POST');
-  assert.deepEqual(JSON.parse(request.options.body), { agent_id: 'agent-7' });
+  assert.deepEqual(JSON.parse(request.options.body), {});
+});
+
+test('coach transport exposes result and session-owned agent lifecycle routes', async () => {
+  const result = await captureRequest(
+    () => new CoachApi('https://api.example').sessionResult('session/1'),
+    { status: 'review_ready' },
+  );
+  assert.equal(result.url, 'https://api.example/api/coaching/sessions/session%2F1/result');
+
+  const start = await captureRequest(
+    () => new CoachApi('https://api.example').startCoachAgent('session/1'),
+    { agent_id: 'agent-7' },
+  );
+  assert.equal(start.url, 'https://api.example/api/coaching/sessions/session%2F1/agent');
+  assert.equal(start.options.method, 'POST');
+
+  const stop = await captureRequest(
+    () => new CoachApi('https://api.example').stopCoachAgent('session/1'),
+    null,
+    204,
+  );
+  assert.equal(stop.url, 'https://api.example/api/coaching/sessions/session%2F1/agent/stop');
 });
 
 test('annotation decision preserves the four-field backend payload', async () => {

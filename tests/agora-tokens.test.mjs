@@ -14,6 +14,7 @@ test('official token adapter creates scoped credentials without echoing signing 
     assert.match(token, /^007/);
     assert.equal(token.includes(credentials.appCertificate), false);
   }
+  assert.notEqual(tokens.agent_token, tokens.server_token);
   assert.notEqual(tokens.client_rtc_token, mintSessionTokens({ ...credentials, channel: `coach-${'d'.repeat(32)}` }).client_rtc_token);
 });
 

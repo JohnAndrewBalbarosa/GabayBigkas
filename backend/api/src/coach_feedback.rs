@@ -63,12 +63,12 @@ impl CoachFeedbackService {
     pub async fn generate(
         &self,
         binding: &CoachAgentBinding,
-        expected_phrases: &[String],
+        practice_words: &[String],
     ) -> Result<GeneratedCoachFeedback, ApiError> {
         let agent_id = binding.agent_id.as_deref().ok_or(ApiError::NotFound)?;
         validate_agent_id(agent_id)?;
         let coach_message = self.latest_assistant_message(binding).await?;
-        let query = youtube_query(expected_phrases)?;
+        let query = youtube_query(practice_words)?;
         let youtube_resource = self.first_youtube_result(&query).await?;
         Ok(GeneratedCoachFeedback {
             coach_message,
@@ -192,9 +192,7 @@ struct YoutubeSnippet {
 pub(crate) async fn provider_json<T: DeserializeOwned>(
     mut response: Response,
 ) -> Result<T, ApiError> {
-    if !response.status().is_success() {
-        return Err(ApiError::ModelUnavailable);
-    }
+    let status = response.status();
     if response
         .content_length()
         .is_some_and(|length| length > MAX_PROVIDER_RESPONSE_BYTES as u64)
@@ -212,17 +210,44 @@ pub(crate) async fn provider_json<T: DeserializeOwned>(
         }
         body.extend_from_slice(&chunk);
     }
+    if !status.is_success() {
+        let provider_code = provider_error_code(&body);
+        tracing::warn!(
+            event = "provider.http.rejected",
+            http_status = status.as_u16(),
+            provider_code = %provider_code,
+        );
+        return Err(ApiError::ModelUnavailable);
+    }
     serde_json::from_slice(&body).map_err(|_| ApiError::ModelUnavailable)
 }
 
-fn youtube_query(expected_phrases: &[String]) -> Result<String, ApiError> {
-    let phrase = expected_phrases
+fn provider_error_code(body: &[u8]) -> String {
+    let Ok(value) = serde_json::from_slice::<serde_json::Value>(body) else {
+        return "unparseable".to_owned();
+    };
+    value
+        .get("code")
+        .or_else(|| value.pointer("/error/code"))
+        .and_then(serde_json::Value::as_str)
+        .filter(|code| {
+            code.len() <= 80
+                && code.chars().all(|character| {
+                    character.is_ascii_alphanumeric() || matches!(character, '_' | '-')
+                })
+        })
+        .unwrap_or("unspecified")
+        .to_owned()
+}
+
+fn youtube_query(practice_words: &[String]) -> Result<String, ApiError> {
+    let word = practice_words
         .iter()
-        .find(|phrase| !phrase.trim().is_empty())
-        .ok_or_else(|| ApiError::Invalid("session has no expected phrase".to_owned()))?;
+        .find(|word| !word.trim().is_empty())
+        .ok_or_else(|| ApiError::Invalid("session has no practice word".to_owned()))?;
     Ok(format!(
         "{} English pronunciation practice",
-        phrase.trim().chars().take(200).collect::<String>()
+        word.trim().chars().take(80).collect::<String>()
     ))
 }
 

@@ -6,8 +6,9 @@ export function normalizeLearnerFeedback(payload) {
   if (typeof payload.coach_message !== 'string' || payload.coach_message.length > 2000) return null;
   const words = payload.words_to_practice.map(normalizePracticeWord);
   const resources = payload.youtube_resources.map(normalizeYoutubeResource);
-  if (words.length > 10 || resources.length > 5 || words.includes(null) || resources.includes(null)) return null;
-  return { words, coachMessage: payload.coach_message, resources };
+  if (words.length > 5 || resources.length > words.length || words.includes(null) || resources.includes(null)) return null;
+  const practiceItems = words.map((word, index) => ({ word, resource: resources[index] ?? null }));
+  return { words, coachMessage: payload.coach_message, resources, practiceItems };
 }
 
 export function youtubeEmbedUrl(videoId) {
@@ -16,22 +17,42 @@ export function youtubeEmbedUrl(videoId) {
 
 export function renderLearnerFeedback(root, payload) {
   const feedback = normalizeLearnerFeedback(payload);
-  const words = root.querySelector('#practice-words');
+  const section = root.querySelector('#feedback-container');
+  const loading = root.querySelector('#feedback-loading');
+  const content = root.querySelector('#feedback-content');
+  const practice = root.querySelector('#practice-items');
   const coach = root.querySelector('#ai-coach-response');
-  const resources = root.querySelector('#youtube-resources');
-  words.replaceChildren();
-  resources.replaceChildren();
+  section.hidden = !feedback;
+  section.setAttribute('aria-busy', 'false');
+  loading.hidden = true;
+  content.hidden = !feedback;
+  practice.replaceChildren();
   if (!feedback) {
-    words.textContent = 'No reviewed word results yet.';
-    coach.textContent = 'No validated AI coach feedback available yet.';
-    resources.textContent = 'No recommended practice lessons available yet.';
+    coach.textContent = '';
     return;
   }
-  words.replaceChildren(...feedback.words.map(renderPracticeWord));
-  if (!feedback.words.length) words.textContent = 'No words marked for additional practice.';
   coach.textContent = feedback.coachMessage;
-  resources.replaceChildren(...feedback.resources.map(renderYoutubeResource));
-  if (!feedback.resources.length) resources.textContent = 'No recommended practice lessons.';
+  practice.replaceChildren(...feedback.practiceItems.map(renderPracticeItem));
+  if (!feedback.practiceItems.length) {
+    practice.textContent = 'No additional focus word was identified for this reading.';
+  }
+}
+
+export function renderLearnerFeedbackLoading(root, title, detail) {
+  const section = root.querySelector('#feedback-container');
+  section.hidden = false;
+  section.setAttribute('aria-busy', 'true');
+  root.querySelector('#feedback-loading').hidden = false;
+  root.querySelector('#feedback-spinner').hidden = false;
+  root.querySelector('#feedback-content').hidden = true;
+  root.querySelector('#feedback-loading-title').textContent = title;
+  root.querySelector('#feedback-loading-detail').textContent = detail;
+}
+
+export function renderLearnerFeedbackError(root, message) {
+  renderLearnerFeedbackLoading(root, 'Feedback is not available yet', message);
+  root.querySelector('#feedback-container').setAttribute('aria-busy', 'false');
+  root.querySelector('#feedback-spinner').hidden = true;
 }
 
 function normalizePracticeWord(item) {
@@ -47,23 +68,31 @@ function isBoundedText(value, maximum) {
   return typeof value === 'string' && value.trim().length > 0 && value.length <= maximum;
 }
 
-function renderPracticeWord(item) {
-  const word = document.createElement('span');
-  word.className = 'practice-word';
-  word.textContent = item;
-  return word;
-}
-
-function renderYoutubeResource(item) {
-  const container = document.createElement('div');
-  container.className = 'resource-card';
+function renderPracticeItem(item) {
+  const container = document.createElement('article');
+  container.className = 'practice-item-card';
+  const heading = document.createElement('div');
+  heading.className = 'practice-item-heading';
+  const label = document.createElement('span');
+  label.textContent = 'Focus word';
+  const word = document.createElement('h3');
+  word.textContent = item.word;
+  heading.append(label, word);
+  container.append(heading);
+  if (!item.resource) {
+    const unavailable = document.createElement('p');
+    unavailable.textContent = 'No safe video recommendation is available for this word.';
+    container.append(unavailable);
+    return container;
+  }
   const title = document.createElement('p');
-  title.textContent = item.title;
+  title.textContent = item.resource.title;
   const frame = document.createElement('iframe');
-  frame.title = item.title;
-  frame.src = youtubeEmbedUrl(item.videoId);
+  frame.title = `${item.word}: ${item.resource.title}`;
+  frame.src = youtubeEmbedUrl(item.resource.videoId);
   frame.loading = 'lazy';
   frame.allowFullscreen = true;
+  frame.referrerPolicy = 'strict-origin-when-cross-origin';
   container.append(title, frame);
   return container;
 }

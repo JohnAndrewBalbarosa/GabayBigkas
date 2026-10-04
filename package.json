@@ -22,7 +22,9 @@
     "package:event": "node scripts/package-event.mjs"
   },
   "dependencies": {
+    "agora-agent-client-toolkit": "2.9.1",
     "agora-token": "2.0.6",
+    "agora-rtm": "2.3.0",
     "agora-rtc-sdk-ng": "4.24.8",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1"

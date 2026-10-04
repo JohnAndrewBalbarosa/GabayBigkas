@@ -56,7 +56,7 @@
             <button type="button" id="hero-cta-about" class="text-link">See how it works <span aria-hidden="true">→</span></button>
           </div>
           <ul class="trust-list" aria-label="Product safeguards">
-            <li>Consenting adults</li><li>Human-reviewed evidence</li><li>Privacy-bounded audio</li>
+            <li>Consenting adults</li><li>Reviewable evidence</li><li>Privacy-bounded audio</li>
           </ul>
         </div>
 
@@ -91,13 +91,13 @@
       <div class="page-intro">
         <p class="eyebrow"><span></span> How it works</p>
         <h1>A simple, reviewable practice loop.</h1>
-        <p>GabayBigkas makes every step clear, from recording consent to human review.</p>
+        <p>GabayBigkas makes every step clear, from recording consent to reviewable evidence.</p>
       </div>
       <ol class="process-grid">
         <li><span>01</span><h2>Read the passage</h2><p>A fixed English passage keeps each practice session focused and comparable.</p></li>
         <li><span>02</span><h2>Record with consent</h2><p>One microphone stream captures the session after explicit adult consent.</p></li>
         <li><span>03</span><h2>Process privately</h2><p>The backend acknowledges finalization immediately and processes audio in a bounded background workflow.</p></li>
-        <li><span>04</span><h2>Review the evidence</h2><p>An authorized annotator reviews phrase clips and transcript differences before feedback is released.</p></li>
+        <li><span>04</span><h2>Review the evidence</h2><p>An authorized annotator can review phrase clips and transcript differences; AI practice guidance is separate.</p></li>
       </ol>
     </section>
 
@@ -130,7 +130,7 @@
 
     <section id="learner" class="page workspace-page" hidden>
       <header class="workspace-header">
-        <div><p class="eyebrow"><span></span> Learner workspace</p><h1>One passage. One focused reading.</h1><p>Read clearly at your natural pace. Your result will be reviewed before feedback is released.</p></div>
+        <div><p class="eyebrow"><span></span> Learner workspace</p><h1>One passage. One focused reading.</h1><p>Read clearly at your natural pace. Your recording becomes reviewable evidence after processing.</p></div>
         <span class="role-badge">Learner</span>
       </header>
       <div class="practice-layout">
@@ -168,13 +168,17 @@
           <p class="privacy-note"><span aria-hidden="true">i</span> Temporary full-session audio is removed after successful processing or bounded failure cleanup.</p>
         </aside>
       </div>
-      <section id="feedback-container" class="feedback-section" aria-labelledby="feedback-heading" hidden>
-        <div class="section-heading-row"><div><p class="eyebrow"><span></span> Reviewed guidance</p><h2 id="feedback-heading">Your next practice step</h2></div></div>
-        <div class="feedback-grid">
-          <article><h3>Words to revisit</h3><div id="practice-words" class="word-list"></div></article>
-          <article><h3>Coach note</h3><p id="ai-coach-response" class="coach-note"></p></article>
+      <section id="feedback-container" class="feedback-section" aria-labelledby="feedback-heading" aria-busy="false" hidden>
+        <div id="feedback-loading" class="feedback-loading" role="status" aria-live="polite" hidden>
+          <span id="feedback-spinner" class="loading-spinner" aria-hidden="true"></span>
+          <div><strong id="feedback-loading-title">Preparing your feedback…</strong><p id="feedback-loading-detail">Your reading is still being processed.</p></div>
         </div>
-        <div><h3>Practice resource</h3><div id="youtube-resources" class="resource-grid"></div></div>
+        <div id="feedback-content" hidden>
+          <div class="section-heading-row"><div><p class="eyebrow"><span></span> AI practice guide</p><h2 id="feedback-heading">Your next practice step</h2></div></div>
+          <article class="coach-card"><h3>Coach note</h3><p id="ai-coach-response" class="coach-note"></p></article>
+          <div class="practice-guide-heading"><h3>Word practice and video</h3><p>Focus words come from transcript comparison and are practice suggestions, not pronunciation grades.</p></div>
+          <div id="practice-items" class="practice-items"></div>
+        </div>
       </section>
     </section>
 

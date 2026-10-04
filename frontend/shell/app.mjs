@@ -1,13 +1,26 @@
 import { CoachApi } from '../transport/coach-api.mjs';
 import { LearnerSession, renderSessionStatus } from '../learner/session.mjs';
-import { renderLearnerFeedback } from '../learner/feedback.mjs';
+import {
+  renderLearnerFeedback,
+  renderLearnerFeedbackError,
+  renderLearnerFeedbackLoading,
+} from '../learner/feedback.mjs';
+import { LearnerCoachHandoff } from '../learner/coach-handoff.mjs';
 import { renderAnnotationQueue } from '../annotator/review.mjs';
+
+const RESULT_POLL_INTERVAL_MS = 2_000;
+const RESULT_POLL_ATTEMPTS = 45;
+const FEEDBACK_RETRY_INTERVAL_MS = 1_500;
+const FEEDBACK_ATTEMPTS = 4;
 
 const api = new CoachApi(globalThis.GABAYBIGKAS_API_BASE_URL ?? '');
 const state = {
   account: null,
   coachingSessionId: null,
+  coachFlow: null,
+  coachHandoff: null,
   learnerStage: 'consent',
+  flowEpoch: 0,
 };
 const learnerStatus = document.querySelector('#learner-status');
 const learner = new LearnerSession(api, message => setLearnerStatus(message));
@@ -92,11 +105,17 @@ function bindAuthentication() {
 
   document.querySelector('#logout').addEventListener('click', async event => {
     event.currentTarget.disabled = true;
+    state.flowEpoch += 1;
     try {
       try {
         await learner.cancel();
       } catch {
         setLearnerStatus('The microphone stopped, but a pending audio upload was not completed.', true);
+      }
+      try {
+        await stopCoachFlow();
+      } catch (error) {
+        setPageStatus(`Coach cleanup needs attention: ${userMessage(error)}`, true);
       }
       await api.logout();
       clearAccount('You are now signed out.');
@@ -134,6 +153,7 @@ function activateAccount(account, announce = true) {
 }
 
 function clearAccount(message, announce = true) {
+  state.flowEpoch += 1;
   state.account = null;
   state.coachingSessionId = null;
   document.querySelector('#account').hidden = true;
@@ -192,6 +212,7 @@ function bindLearnerSession() {
 
   start.addEventListener('click', async () => {
     start.disabled = true;
+    renderLearnerFeedback(document, null);
     setLearnerStatus('Requesting microphone access…');
     try {
       const result = await learner.start({
@@ -219,6 +240,7 @@ function bindLearnerSession() {
       state.coachingSessionId = result.session_id;
       refresh.hidden = false;
       renderBackendSession(result);
+      await continueLearnerFlow();
     } catch (error) {
       setLearnerStatus(userMessage(error), true);
     } finally {
@@ -232,13 +254,127 @@ function bindLearnerSession() {
     refresh.disabled = true;
     setLearnerStatus('Checking the latest backend status…');
     try {
-      renderBackendSession(await api.coachingSession(state.coachingSessionId));
+      await continueLearnerFlow();
     } catch (error) {
       setLearnerStatus(userMessage(error), true);
     } finally {
       refresh.disabled = false;
     }
   });
+}
+
+function continueLearnerFlow() {
+  if (state.coachFlow) return state.coachFlow;
+  state.coachFlow = runLearnerFlow().finally(() => {
+    state.coachFlow = null;
+  });
+  return state.coachFlow;
+}
+
+// Mental model: wait for private transcription, hand the bounded evidence to the
+// session-owned agent, persist its response, then render one practice plan.
+async function runLearnerFlow() {
+  const sessionId = state.coachingSessionId;
+  const flowEpoch = state.flowEpoch;
+  if (!sessionId) return;
+  renderLearnerFeedbackLoading(
+    document,
+    'Analyzing your reading…',
+    'The private transcription usually finishes within a minute. You can see each stage here.',
+  );
+  document.querySelector('#feedback-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  try {
+    const result = await waitForProcessedResult(sessionId);
+    if (flowEpoch !== state.flowEpoch) return;
+    renderBackendSession(result);
+    if (result.coach_feedback) {
+      renderLearnerFeedback(document, result.coach_feedback);
+      return;
+    }
+    if (result.status !== 'review_ready') {
+      throw new Error(renderSessionStatus(result.status));
+    }
+
+    renderLearnerFeedbackLoading(
+      document,
+      'Preparing your AI practice guide…',
+      'The transcript is ready. A private, session-owned coach is connecting now.',
+    );
+    const health = await api.health();
+    if (flowEpoch !== state.flowEpoch) return;
+    if (!health.agora_agent || !health.coach_feedback) {
+      throw new Error('AI coaching is not configured on this server. An administrator must set the Agora and YouTube production credentials.');
+    }
+    const credentials = await api.startCoachAgent(sessionId);
+    if (flowEpoch !== state.flowEpoch) {
+      await api.stopCoachAgent(sessionId);
+      return;
+    }
+    state.coachHandoff = new LearnerCoachHandoff((message) => {
+      renderLearnerFeedbackLoading(document, 'Preparing your AI practice guide…', message);
+    });
+    await state.coachHandoff.requestCoachResponse(credentials);
+    if (flowEpoch !== state.flowEpoch) return;
+    renderLearnerFeedbackLoading(
+      document,
+      'Finding a focused practice video…',
+      'The coach note is ready. The backend is selecting a bounded YouTube recommendation.',
+    );
+    const feedback = await createFeedbackWithBoundedWait(sessionId);
+    if (flowEpoch !== state.flowEpoch) return;
+    renderLearnerFeedback(document, feedback);
+    setLearnerStatus('Your AI practice guide is ready.');
+    renderLearnerStage('review');
+  } catch (error) {
+    if (flowEpoch !== state.flowEpoch) return;
+    const message = userMessage(error);
+    renderLearnerFeedbackError(document, message);
+    setLearnerStatus(message, true);
+  } finally {
+    await stopCoachFlow(sessionId);
+  }
+}
+
+async function waitForProcessedResult(sessionId) {
+  for (let attempt = 0; attempt < RESULT_POLL_ATTEMPTS; attempt += 1) {
+    const result = await api.sessionResult(sessionId);
+    if (['review_ready', 'failed', 'analysis_unavailable'].includes(result.status)) return result;
+    renderLearnerFeedbackLoading(
+      document,
+      'Analyzing your reading…',
+      `Backend analysis is still running. Status check ${attempt + 1} of ${RESULT_POLL_ATTEMPTS}.`,
+    );
+    await delay(RESULT_POLL_INTERVAL_MS);
+  }
+  throw new Error('Analysis is taking longer than expected. Use Check status to continue.');
+}
+
+async function createFeedbackWithBoundedWait(sessionId) {
+  for (let attempt = 0; attempt < FEEDBACK_ATTEMPTS; attempt += 1) {
+    try {
+      return await api.createCoachFeedback(sessionId);
+    } catch (error) {
+      if (error?.code !== 'conflict' || attempt === FEEDBACK_ATTEMPTS - 1) throw error;
+      await delay(FEEDBACK_RETRY_INTERVAL_MS);
+    }
+  }
+  throw new Error('The coach response is not ready.');
+}
+
+async function stopCoachFlow(sessionId = state.coachingSessionId) {
+  const handoff = state.coachHandoff;
+  state.coachHandoff = null;
+  await handoff?.close();
+  if (!sessionId || !handoff) return;
+  try {
+    await api.stopCoachAgent(sessionId);
+  } catch (error) {
+    if (!['not_found', 'conflict'].includes(error?.code)) throw error;
+  }
+}
+
+function delay(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 function renderBackendSession(session) {

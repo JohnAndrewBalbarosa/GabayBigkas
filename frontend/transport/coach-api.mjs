@@ -11,6 +11,10 @@ export class CoachApi {
     return this.#json('/api/auth/session');
   }
 
+  async health() {
+    return this.#json('/api/health');
+  }
+
   async logout() {
     await this.#json('/api/auth/logout', { method: 'POST' });
   }
@@ -21,6 +25,10 @@ export class CoachApi {
 
   async coachingSession(sessionId) {
     return this.#json(`/api/coaching/sessions/${encodeURIComponent(sessionId)}`);
+  }
+
+  async sessionResult(sessionId) {
+    return this.#json(`/api/coaching/sessions/${encodeURIComponent(sessionId)}/result`);
   }
 
   async uploadPcmChunk(sessionId, sequence, sampleRate, channels, bytes) {
@@ -50,10 +58,22 @@ export class CoachApi {
     return this.#json(`/api/coaching/sessions/${encodeURIComponent(sessionId)}/finalize`, { method: 'POST' });
   }
 
-  async createCoachFeedback(sessionId, agentId) {
+  async startCoachAgent(sessionId) {
+    return this.#json(`/api/coaching/sessions/${encodeURIComponent(sessionId)}/agent`, {
+      method: 'POST',
+    });
+  }
+
+  async stopCoachAgent(sessionId) {
+    await this.#json(`/api/coaching/sessions/${encodeURIComponent(sessionId)}/agent/stop`, {
+      method: 'POST',
+    });
+  }
+
+  async createCoachFeedback(sessionId) {
     return this.#json(`/api/coaching/sessions/${encodeURIComponent(sessionId)}/coach-feedback`, {
       method: 'POST',
-      body: { agent_id: agentId },
+      body: {},
     });
   }
 

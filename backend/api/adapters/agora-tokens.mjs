@@ -7,10 +7,10 @@ export function mintSessionTokens({ appId, appCertificate, channel, clientUid, a
   if (!Number.isInteger(ttl) || ttl < 60 || ttl > 600) throw new Error('Invalid token lifetime');
   const { RtcTokenBuilder, RtmTokenBuilder, RtcRole } = tokenLibrary;
   return {
-    client_rtc_token: RtcTokenBuilder.buildTokenWithUid(appId, appCertificate, channel, Number(clientUid), RtcRole.PUBLISHER, ttl, ttl),
+    client_rtc_token: RtcTokenBuilder.buildTokenWithUid(appId, appCertificate, channel, Number(clientUid), RtcRole.SUBSCRIBER, ttl, ttl),
     client_rtm_token: RtmTokenBuilder.buildToken(appId, appCertificate, clientUid, ttl),
     agent_token: RtcTokenBuilder.buildTokenWithRtm(appId, appCertificate, channel, agentUid, RtcRole.PUBLISHER, ttl, ttl),
-    server_token: RtcTokenBuilder.buildTokenWithRtm(appId, appCertificate, channel, agentUid, RtcRole.PUBLISHER, ttl, ttl),
+    server_token: RtcTokenBuilder.buildTokenWithRtm(appId, appCertificate, channel, clientUid, RtcRole.PUBLISHER, ttl, ttl),
   };
 }
 
