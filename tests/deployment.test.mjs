@@ -9,11 +9,13 @@ test('production frontend uses credentialed sessions and an injected API origin'
     readFile(new URL('../scripts/build.mjs', import.meta.url), 'utf8'),
     readFile(new URL('../frontend/shell/index.html', import.meta.url), 'utf8'),
   ]);
-  assert.equal(transport.match(/credentials: 'include'/g)?.length, 3);
+  assert.match(transport, /credentials: 'include'/);
+  assert.doesNotMatch(transport, /localStorage|sessionStorage/);
   assert.match(app, /GABAYBIGKAS_API_BASE_URL/);
   assert.match(app, /api\.session\(\)/);
   assert.match(app, /api\.logout\(\)/);
   assert.doesNotMatch(app, /localStorage|sessionStorage/);
+  assert.doesNotMatch(transport, /\/api\/inference|modal-run|poc-ticket/);
   assert.match(build, /COACH_PUBLIC_API_BASE_URL/);
   assert.doesNotMatch(html, /style=/);
   assert.match(html, /rel="stylesheet"/);

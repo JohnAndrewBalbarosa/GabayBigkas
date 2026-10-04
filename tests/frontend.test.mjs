@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { float32ToPcm16 } from '../frontend/voice/capture/pcm.mjs';
 import { CoachApi } from '../frontend/transport/coach-api.mjs';
 import { normalizeLearnerFeedback, youtubeEmbedUrl } from '../frontend/learner/feedback.mjs';
@@ -10,43 +11,28 @@ test('PCM conversion clamps browser samples to signed 16-bit values', () => {
   assert.deepEqual([...pcm], [-32768, -32768, 0, 32767, 32767]);
 });
 
-test('POC ticket request is scoped to exactly one encoded inference job', async () => {
-  const originalFetch = globalThis.fetch;
-  let request;
-  globalThis.fetch = async (url, options) => {
-    request = { url, options };
-    return new Response(JSON.stringify({ job_id: 'job/1', token: 'secret', expires_at: 1 }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  };
-  try {
-    await new CoachApi('https://api.example').createInferencePocTicket('job/1');
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
-
-  assert.equal(request.url, 'https://api.example/api/inference/jobs/job%2F1/poc-ticket');
-  assert.equal(request.options.method, 'POST');
-  assert.equal(request.options.credentials, 'include');
-});
-
-test('learner feedback accepts bounded structured output and constructs a privacy-enhanced embed', () => {
+test('learner feedback accepts the bounded Rust response shape', () => {
   const feedback = normalizeLearnerFeedback({
     status: 'ready',
-    words_to_practice: [{ word: 'think', reason: 'Unclear consonant.', pronunciation_tip: 'Keep the tongue forward.' }],
+    words_to_practice: ['think', 'fifty'],
     coach_message: 'Practice slowly before increasing speed.',
     youtube_resources: [{ title: 'TH practice', video_id: 'abcdefghijk' }],
   });
 
-  assert.equal(feedback.words[0].word, 'think');
+  assert.deepEqual(feedback.words, ['think', 'fifty']);
   assert.equal(feedback.resources[0].videoId, 'abcdefghijk');
   assert.equal(youtubeEmbedUrl('abcdefghijk'), 'https://www.youtube-nocookie.com/embed/abcdefghijk');
 });
 
-test('learner feedback rejects untrusted video URLs and malformed tool output', () => {
+test('learner feedback rejects object-shaped words, untrusted video IDs, and malformed output', () => {
   assert.equal(youtubeEmbedUrl('https://evil.example'), null);
   assert.equal(normalizeLearnerFeedback({ status: 'ready', coach_message: 'Missing arrays.' }), null);
+  assert.equal(normalizeLearnerFeedback({
+    status: 'ready',
+    words_to_practice: [{ word: 'think' }],
+    coach_message: 'Message',
+    youtube_resources: [],
+  }), null);
   assert.equal(normalizeLearnerFeedback({
     status: 'ready',
     words_to_practice: [],
@@ -55,40 +41,56 @@ test('learner feedback rejects untrusted video URLs and malformed tool output', 
   }), null);
 });
 
-test('Modal execution request is authenticated by the Rust session and scoped to one encoded job', async () => {
-  const originalFetch = globalThis.fetch;
-  let request;
-  globalThis.fetch = async (url, options) => {
-    request = { url, options };
-    return new Response(JSON.stringify({ job_id: 'job/1', status: 'review_ready', review_items: 1 }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  };
-
-  try {
-    await new CoachApi('https://api.example').runInferenceOnModal('job/1');
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
-
-  assert.equal(request.url, 'https://api.example/api/inference/jobs/job%2F1/modal-run');
-  assert.equal(request.options.method, 'POST');
-  assert.equal(request.options.credentials, 'include');
-  assert.equal(request.options.headers, undefined);
+test('product transport uses only canonical backend routes', async () => {
+  const source = await readFile(new URL('../frontend/transport/coach-api.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /\/api\/inference|poc-ticket|modal-run|\/export|\/import/);
+  assert.match(source, /\/api\/coaching\/sessions\/\$\{encodeURIComponent\(sessionId\)\}\/coach-feedback/);
+  assert.match(source, /\/api\/annotation\/items\/\$\{encodeURIComponent\(id\)\}\/decision/);
 });
 
-test('LearnerSession finishes with fire-and-forget finalize and does not trigger Modal inference', async () => {
+test('session lookup encodes the ID and includes the secure session cookie', async () => {
+  const request = await captureRequest(
+    () => new CoachApi('https://api.example').coachingSession('session/1'),
+    { id: 'session/1', status: 'review_ready' },
+  );
+  assert.equal(request.url, 'https://api.example/api/coaching/sessions/session%2F1');
+  assert.equal(request.options.credentials, 'include');
+});
+
+test('coach feedback sends only the backend-owned agent identifier', async () => {
+  const request = await captureRequest(
+    () => new CoachApi('https://api.example').createCoachFeedback('session/1', 'agent-7'),
+    { status: 'ready', words_to_practice: [], youtube_resources: [], coach_message: 'Ready.' },
+  );
+  assert.equal(request.url, 'https://api.example/api/coaching/sessions/session%2F1/coach-feedback');
+  assert.equal(request.options.method, 'POST');
+  assert.deepEqual(JSON.parse(request.options.body), { agent_id: 'agent-7' });
+});
+
+test('annotation decision preserves the four-field backend payload', async () => {
+  const decision = {
+    decision: 'corrected_transcript',
+    corrected_text: 'Fifty people think clearly.',
+    notes: 'Reviewed with full sentence context.',
+  };
+  const request = await captureRequest(
+    () => new CoachApi('https://api.example').decideAnnotation('item/1', decision),
+    null,
+    204,
+  );
+  assert.equal(request.url, 'https://api.example/api/annotation/items/item%2F1/decision');
+  assert.equal(request.options.method, 'POST');
+  assert.equal(request.options.credentials, 'include');
+  assert.deepEqual(JSON.parse(request.options.body), decision);
+});
+
+test('LearnerSession finalizes once and always stops the microphone tracks first', async () => {
   const statuses = [];
   const calls = [];
   const fakeApi = {
     finalizeSession: async id => {
       calls.push(['finalize', id]);
       return { session_id: id, status: 'pending_manual_inference', acknowledged: true, inference_job_id: 'job-123' };
-    },
-    runInferenceOnModal: async () => {
-      calls.push(['modal-run']);
-      return { status: 'review_ready' };
     },
   };
   const session = new LearnerSession(fakeApi, status => statuses.push(status));
@@ -107,47 +109,44 @@ test('LearnerSession finishes with fire-and-forget finalize and does not trigger
   assert.equal(stoppedRecorder, true);
   assert.deepEqual(calls, [['finalize', 'sess-1']]);
   assert.equal(result.status, 'pending_manual_inference');
-  assert.equal(result.acknowledged, true);
-  assert.ok(statuses.includes('Processing session audio...'));
-  assert.ok(statuses.some(s => s.includes('Audio received')));
+  assert.ok(statuses.some(status => status.includes('backend')));
 });
 
-test('renderSessionStatus reflects backend-managed inference without frontend Modal assumptions', () => {
-  const pendingStatus = renderSessionStatus('pending_manual_inference');
-  const exportedStatus = renderSessionStatus('exported');
-  const readyStatus = renderSessionStatus('review_ready');
-  const unavailableStatus = renderSessionStatus('model_unavailable');
-
-  assert.match(pendingStatus, /backend/i);
-  assert.doesNotMatch(pendingStatus, /colab/i);
-  assert.doesNotMatch(exportedStatus, /colab/i);
-  assert.match(readyStatus, /human review/i);
-  assert.match(unavailableStatus, /Modal/i);
+test('renderSessionStatus reflects backend-managed inference without deprecated browser controls', () => {
+  assert.match(renderSessionStatus('pending_manual_inference'), /backend/i);
+  assert.match(renderSessionStatus('review_ready'), /human review/i);
+  assert.doesNotMatch(renderSessionStatus('pending_manual_inference'), /colab|export|manual/i);
+  assert.doesNotMatch(renderSessionStatus('model_unavailable'), /token|credential/i);
 });
 
-test('uploadPcmChunk transmits audio chunk headers and returns idempotent acceptance', async () => {
+test('uploadPcmChunk transmits bounded audio metadata and returns idempotent acceptance', async () => {
+  const bytes = new Uint8Array([0, 1, 2, 3]);
+  const request = await captureRequest(
+    () => new CoachApi('https://api.example').uploadPcmChunk('sess/42', 3, 16000, 1, bytes),
+    { accepted: true, idempotent: true },
+  );
+  assert.equal(request.url, 'https://api.example/api/coaching/sessions/sess%2F42/audio/chunks');
+  assert.equal(request.options.method, 'POST');
+  assert.equal(request.options.headers['X-Audio-Sequence'], '3');
+  assert.equal(request.options.headers['X-Sample-Rate'], '16000');
+  assert.equal(request.options.headers['X-Channels'], '1');
+  assert.equal(request.options.headers['Content-Type'], 'application/octet-stream');
+});
+
+async function captureRequest(action, payload, status = 200) {
   const originalFetch = globalThis.fetch;
-  let captured;
+  let request;
   globalThis.fetch = async (url, options) => {
-    captured = { url, options };
-    return new Response(JSON.stringify({ accepted: true, idempotent: true }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
+    request = { url, options };
+    return new Response(status === 204 ? null : JSON.stringify(payload), {
+      status,
+      headers: status === 204 ? undefined : { 'Content-Type': 'application/json' },
     });
   };
-
   try {
-    const api = new CoachApi('https://api.example');
-    const bytes = new Uint8Array([0, 1, 2, 3]);
-    const res = await api.uploadPcmChunk('sess-42', 3, 16000, 1, bytes);
-    assert.deepEqual(res, { accepted: true, idempotent: true });
-    assert.equal(captured.url, 'https://api.example/api/coaching/sessions/sess-42/audio/chunks');
-    assert.equal(captured.options.method, 'POST');
-    assert.equal(captured.options.headers['X-Audio-Sequence'], '3');
-    assert.equal(captured.options.headers['X-Sample-Rate'], '16000');
-    assert.equal(captured.options.headers['X-Channels'], '1');
-    assert.equal(captured.options.headers['Content-Type'], 'application/octet-stream');
+    await action();
+    return request;
   } finally {
     globalThis.fetch = originalFetch;
   }
-});
+}

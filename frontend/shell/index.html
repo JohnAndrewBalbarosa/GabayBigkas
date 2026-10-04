@@ -1,294 +1,191 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-PH">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>GabayBigkas — Guided English Learning</title>
+  <meta name="theme-color" content="#f5f1e8">
+  <meta name="description" content="GabayBigkas is a guided English speaking practice experience with reviewable feedback.">
+  <title>GabayBigkas — Boses mo, gabay mo</title>
   <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-  <header class="site-header">
-    <div class="brand-wrap">
-      <a href="#home" class="brand-logo" data-public-page="home">
-        <span class="brand-mark">GB</span>
-        <div class="brand-text">
-          <h1>Gabay<span>Bigkas</span></h1>
-          <p>Guided English Practice Lab</p>
-        </div>
-      </a>
-    </div>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
 
-    <button type="button" id="menu-toggle" class="menu-toggle" aria-label="Toggle navigation menu" aria-expanded="false">
-      <span class="menu-bar"></span>
-      <span class="menu-bar"></span>
-      <span class="menu-bar"></span>
+  <header class="site-header">
+    <a href="#home" class="brand" data-public-page="home" aria-label="GabayBigkas home">
+      <span class="brand-mark" aria-hidden="true">GB</span>
+      <span class="brand-copy"><strong>GabayBigkas</strong><small>Boses mo, gabay mo.</small></span>
+    </a>
+
+    <button type="button" id="menu-toggle" class="menu-toggle" aria-controls="primary-nav" aria-label="Buksan ang navigation" aria-expanded="false">
+      <span></span><span></span><span></span>
     </button>
 
-    <nav id="primary-nav" class="nav-menu" aria-label="Main navigation">
+    <nav id="primary-nav" class="primary-nav" aria-label="Main navigation">
       <div class="nav-links">
-        <button type="button" data-public-page="home" class="nav-link active-nav">Home</button>
-        <button type="button" data-public-page="about" class="nav-link">About</button>
+        <button type="button" data-public-page="home" class="nav-link is-active">Home</button>
+        <button type="button" data-public-page="about" class="nav-link">How it works</button>
       </div>
-
       <div id="workspace-navigation" class="workspace-links" hidden>
-        <button type="button" data-workspace="learner" class="nav-link workspace-pill">Practice</button>
-        <button type="button" data-workspace="annotator" class="nav-link workspace-pill">Review Station</button>
+        <button type="button" data-workspace="learner" class="nav-link">Practice</button>
+        <button type="button" data-workspace="annotator" class="nav-link">Review</button>
       </div>
-
-      <div class="auth-group">
-        <button type="button" data-public-page="login" class="nav-link">Log in</button>
-        <button type="button" data-public-page="signup" class="nav-btn-secondary">Sign up</button>
-
-        <div id="account" class="account-pill" hidden>
-          <span class="user-avatar" aria-hidden="true">👤</span>
-          <span id="account-profile" class="user-email"></span>
-          <button id="logout" type="button" class="btn-logout" title="Sign out">Log out</button>
+      <div class="auth-actions">
+        <button type="button" data-public-page="login" class="button button-quiet">Log in</button>
+        <button type="button" data-public-page="signup" class="button button-dark">Request access</button>
+        <div id="account" class="account-menu" hidden>
+          <span class="account-avatar" aria-hidden="true"></span>
+          <span><strong id="account-profile"></strong><small id="account-role"></small></span>
+          <button id="logout" type="button" class="button button-quiet">Log out</button>
         </div>
       </div>
     </nav>
   </header>
 
-  <main>
-    <div id="page-status" role="status" class="status-banner" hidden></div>
+  <div id="page-status" role="status" aria-live="polite" aria-atomic="true" class="status-toast" hidden></div>
 
-    <!-- HOME SECTION / HERO -->
-    <section id="home" class="page-section">
-      <div class="hero-block">
-        <p class="eyebrow">AI-ASSISTED SPEECH COACHING</p>
-        <h2 class="hero-title">Speak English with Clarity &amp; Verified Confidence</h2>
-        <p class="hero-lead">
-          GabayBigkas pairs in-browser speech capture with deep acoustic models and human-in-the-loop review.
-          Identify exact phoneme friction points and practice with targeted micro-lessons.
-        </p>
-        <div class="hero-actions">
-          <button type="button" id="hero-cta-start" class="btn-primary">Start Practicing Now</button>
-          <button type="button" id="hero-cta-about" class="btn-secondary">How It Works</button>
+  <main id="main-content">
+    <section id="home" class="page page-home">
+      <div class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow"><span></span> Guided English practice</p>
+          <h1>Practice your voice.<br><em>Build real confidence.</em></h1>
+          <p class="hero-lead">Magbasa ng guided sentence, magsalita sa natural mong paraan, at makatanggap ng reviewable feedback na malinaw ang pinagmulan.</p>
+          <div class="hero-actions">
+            <button type="button" id="hero-cta-start" class="button button-primary button-large">Start practice</button>
+            <button type="button" id="hero-cta-about" class="text-link">See how it works <span aria-hidden="true">→</span></button>
+          </div>
+          <ul class="trust-list" aria-label="Product safeguards">
+            <li>Consenting adults</li><li>Human-reviewed evidence</li><li>Privacy-bounded audio</li>
+          </ul>
+        </div>
+
+        <div class="hero-visual" aria-label="Illustration of a guided speaking practice">
+          <div class="visual-orbit orbit-one"></div><div class="visual-orbit orbit-two"></div>
+          <div class="voice-card">
+            <div class="voice-card-top"><span class="live-dot"></span><span>Practice prompt</span><span class="voice-time">00:18</span></div>
+            <blockquote>“Fifty people<br>think clearly.”</blockquote>
+            <div class="waveform" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="voice-card-bottom"><span class="record-control" aria-hidden="true"><span></span></span><span>Speak at your own pace</span></div>
+          </div>
+          <div class="floating-note note-review"><strong>Reviewable</strong><span>Evidence, hindi verdict</span></div>
+          <div class="floating-note note-private"><strong>Private by design</strong><span>Bounded retention</span></div>
         </div>
       </div>
 
-      <div class="feature-grid">
-        <div class="feature-card">
-          <div class="feature-icon" aria-hidden="true">🎙️</div>
-          <h3>Guided Sentence Prompts</h3>
-          <p>Read focused, real-world English sentences designed to highlight common phonetic contrasts such as /th/, /f/, and /v/.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon" aria-hidden="true">⚡</div>
-          <h3>Dual-Engine Verification</h3>
-          <p>Real-time Agora speech recognition events are cross-checked with specialized acoustic models to pinpoint pronunciation discrepancies.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon" aria-hidden="true">🎯</div>
-          <h3>Targeted Micro-Lessons</h3>
-          <p>Receive immediate phonetic correction tips and curated video tutorials for each word that requires reinforcement.</p>
-        </div>
+      <div class="proof-strip" aria-label="Practice flow">
+        <div><span>01</span><strong>Read</strong><small>One focused prompt</small></div>
+        <div><span>02</span><strong>Speak</strong><small>Your natural voice</small></div>
+        <div><span>03</span><strong>Review</strong><small>Human-guided evidence</small></div>
+        <div><span>04</span><strong>Practice</strong><small>A clearer next try</small></div>
+      </div>
+
+      <section class="home-story" aria-labelledby="home-story-title">
+        <div><p class="eyebrow"><span></span> Built for thoughtful practice</p><h2 id="home-story-title">Feedback that respects how people really speak.</h2></div>
+        <p>Hindi automatic pronunciation grade ang transcript difference. Ginagamit ito bilang signal para sa mas maingat na human review—kasama ang context, accent, at recording quality.</p>
+      </section>
+    </section>
+
+    <section id="about" class="page page-about" hidden>
+      <div class="page-intro">
+        <p class="eyebrow"><span></span> How it works</p>
+        <h1>Isang simple at reviewable na practice loop.</h1>
+        <p>Dinisenyo ang GabayBigkas para maging malinaw kung ano ang nangyayari sa bawat hakbang—mula consent hanggang human review.</p>
+      </div>
+      <ol class="process-grid">
+        <li><span>01</span><h2>Choose a prompt</h2><p>Fixed guided English phrases ang ginagamit para focused at comparable ang practice.</p></li>
+        <li><span>02</span><h2>Record with consent</h2><p>Isang microphone stream ang ginagamit sa session capture. Kailangan ang explicit adult consent.</p></li>
+        <li><span>03</span><h2>Process privately</h2><p>Ina-acknowledge agad ng backend ang finalize at pinoproseso ang audio sa bounded background workflow.</p></li>
+        <li><span>04</span><h2>Review the evidence</h2><p>Sentence clips at transcript differences ang sinusuri ng authorized annotator bago maging feedback.</p></li>
+      </ol>
+      <aside class="principle-card"><p>Our principle</p><blockquote>Ang disagreement ay review signal—hindi awtomatikong hatol sa pronunciation.</blockquote></aside>
+    </section>
+
+    <section id="login" class="page auth-page" hidden>
+      <div class="auth-panel auth-message">
+        <p class="eyebrow"><span></span> Welcome back</p><h1>Ready na ang next practice mo.</h1>
+        <p>Mag-log in gamit ang trial account na ibinigay ng administrator. Ang learner at reviewer workspaces ay hiwalay ayon sa account role.</p>
+        <div class="auth-assurance"><span aria-hidden="true">✓</span><p><strong>Secure local session</strong><br>HttpOnly session cookie ang ginagamit; walang auth token na sine-save sa browser storage.</p></div>
+      </div>
+      <div class="auth-panel auth-form-panel">
+        <form id="login-form" class="form-stack">
+          <div><h2>Log in</h2><p>Enter your trial account details.</p></div>
+          <label for="login-email">Email address</label>
+          <input id="login-email" name="email" type="email" autocomplete="username" inputmode="email" placeholder="learner@example.test" required>
+          <label for="login-password">Password</label>
+          <input id="login-password" name="password" type="password" autocomplete="current-password" required>
+          <button type="submit" class="button button-primary button-block">Continue</button>
+          <p id="login-status" role="status" aria-live="polite" class="form-status"></p>
+        </form>
       </div>
     </section>
 
-    <!-- ABOUT SECTION -->
-    <section id="about" class="page-section" hidden>
-      <div class="section-header">
-        <p class="eyebrow">YOUR VOICE, YOUR GUIDE</p>
-        <h2>Practice That Listens Back</h2>
-        <p class="section-desc">An AI-guided English-speaking experience that turns live voice into immediate, repeatable practice.</p>
-      </div>
-
-      <div class="about-grid">
-        <div class="about-card">
-          <span class="step-num">01</span>
-          <h3>The Challenge</h3>
-          <p>Every learner needs feedback, but teachers in large classrooms cannot hear every attempt. When feedback is delayed, hesitation speaks first and learners miss chances to practice.</p>
-        </div>
-
-        <div class="about-card">
-          <span class="step-num">02</span>
-          <h3>Beyond Generic Transcripts</h3>
-          <p>Ordinary speech recognition merely types out what it heard without turning uncertainty into guidance. GabayBigkas treats speech differences as diagnostic signals, not failure.</p>
-        </div>
-
-        <div class="about-card">
-          <span class="step-num">03</span>
-          <h3>Every Voice Deserves A Clearer Next Try</h3>
-          <p>By pairing live Agora voice streaming with fine-tuned acoustic comparison, learners receive targeted guidance and retry immediately until both engines agree.</p>
-        </div>
-      </div>
-
-      <div class="learning-loop-box">
-        <h4>The 5-Step Learning Loop</h4>
-        <div class="loop-flow">
-          <div class="loop-step">
-            <strong>1. Prompt</strong>
-            <span>Curated sentence prompt aligned with learning benchmarks</span>
-          </div>
-          <div class="loop-step">
-            <strong>2. Speak</strong>
-            <span>Live voice carried via Agora WebRTC with high-fidelity capture</span>
-          </div>
-          <div class="loop-step">
-            <strong>3. Second Listen</strong>
-            <span>Acoustic model tuned for Philippine English speech contexts</span>
-          </div>
-          <div class="loop-step">
-            <strong>4. Deterministic Diff</strong>
-            <span>Pinpoints exact words and phonemes with transcription differences</span>
-          </div>
-          <div class="loop-step">
-            <strong>5. Guided Retry</strong>
-            <span>Targeted pronunciation tips and video lessons for instant re-attempt</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="quote-callout">
-        <p class="quote-text">&ldquo;Disagreement drives the next practice step. Agreement is what we audit.&rdquo;</p>
-        <span class="quote-author">&mdash; GabayBigkas Design Philosophy</span>
-      </div>
-
-      <div class="spec-highlight">
-        <h4>System Trust &amp; Safety</h4>
-        <ul>
-          <li><strong>Zero Cloud Audio Retention:</strong> Audio recordings are strictly duration-bounded and processed only with adult consent. Temporary session audio is cleaned up immediately post-analysis.</li>
-          <li><strong>Traceable Human Review:</strong> Reviewers and educators audit agreement and edge cases through a dedicated queue.</li>
-          <li><strong>Native High-Performance Core:</strong> Rust Axum backend with idempotent event handling and server-held proxy security.</li>
-        </ul>
+    <section id="signup" class="page access-page" hidden>
+      <div class="page-intro compact">
+        <p class="eyebrow"><span></span> Limited trial</p><h1>Request access through your trial administrator.</h1>
+        <p>Wala pang public self-registration. Pre-configured accounts lamang ang ginagamit para sa consenting adult participants at authorized reviewers.</p>
+        <button type="button" data-public-page="login" class="button button-primary">I already have an account</button>
       </div>
     </section>
 
-    <!-- LOGIN SECTION -->
-    <section id="login" class="page-section auth-card" hidden>
-      <div class="section-header">
-        <p class="eyebrow">WELCOME BACK</p>
-        <h2>Sign in to Your Account</h2>
-      </div>
-      <form class="styled-form">
-        <label>
-          Email address
-          <input name="email" type="email" autocomplete="username" placeholder="learner@example.test" required>
-        </label>
-        <label>
-          Password
-          <input name="password" type="password" autocomplete="current-password" placeholder="••••••••" required>
-        </label>
-        <button type="submit" class="btn-primary">Sign in</button>
-      </form>
-      <p id="login-status" role="status" class="form-feedback"></p>
-    </section>
-
-    <!-- SIGNUP SECTION -->
-    <section id="signup" class="page-section" hidden>
-      <div class="section-header">
-        <p class="eyebrow">LIMITED ACCESS</p>
-        <h2>Trial Account Registration</h2>
-      </div>
-      <p>Public self-registration is currently restricted for this Proof of Concept deployment.</p>
-      <p>Pre-configured trial accounts are allocated for research participants and evaluation teams.</p>
-      <div class="notice-callout">
-        Please use the credentials provided in your test kit, or contact your trial administrator for access.
-      </div>
-    </section>
-
-    <!-- LEARNER PRACTICE SECTION -->
-    <section id="learner" class="page-section" hidden>
-      <div class="section-header">
-        <p class="eyebrow">LEARNER WORKSPACE</p>
-        <h2>Pronunciation Practice Station</h2>
-        <p class="section-desc">Read the reading prompt below clearly into your microphone, then finalize to submit for review.</p>
-      </div>
-
-      <div class="prompt-card">
-        <span class="prompt-badge">READING EXERCISE</span>
-        <p id="reading-prompt" class="prompt-text">Fifty people think clearly.</p>
-      </div>
-
-      <div class="recording-bar">
-        <span id="learner-status" role="status" class="status-indicator">Ready to record.</span>
-      </div>
-
-      <label class="consent-box">
-        <input id="adult-consent" type="checkbox">
-        <span>I confirm I am an adult and consent to audio recording for pronunciation analysis.</span>
-      </label>
-
-      <div class="action-row">
-        <button id="start-session" type="button" class="btn-record">Start Practice Session</button>
-        <button id="finish-session" type="button" class="btn-finish" disabled>Finish &amp; Submit Audio</button>
-      </div>
-
-      <div class="feedback-container">
-        <section aria-labelledby="practice-heading" class="feedback-subcard">
-          <h3 id="practice-heading">Words to Practice</h3>
-          <div id="practice-words" class="word-chip-grid"></div>
+    <section id="learner" class="page workspace-page" hidden>
+      <header class="workspace-header">
+        <div><p class="eyebrow"><span></span> Learner workspace</p><h1>One sentence. One focused try.</h1><p>Basahin nang malinaw sa natural mong pace. Ang result ay dadaan muna sa review.</p></div>
+        <span class="role-badge">Learner</span>
+      </header>
+      <div class="practice-layout">
+        <section class="practice-card" aria-labelledby="prompt-heading">
+          <div class="card-kicker"><span>Practice 01</span><span>Guided reading</span></div>
+          <h2 id="prompt-heading">Read this sentence aloud</h2>
+          <blockquote id="reading-prompt">Fifty people think clearly.</blockquote>
+          <p class="prompt-help">Take a breath. Hindi kailangang bilisan.</p>
+          <label class="consent-control" for="adult-consent">
+            <input id="adult-consent" type="checkbox">
+            <span><strong>I confirm that I am an adult and I consent to this recording.</strong><small>Gagamitin lamang ang audio para sa bounded practice analysis at authorized review.</small></span>
+          </label>
+          <div class="practice-actions">
+            <button id="start-session" type="button" class="button button-record"><span aria-hidden="true"></span>Start recording</button>
+            <button id="finish-session" type="button" class="button button-dark" disabled>Finish and submit</button>
+            <button id="refresh-session" type="button" class="button button-quiet" hidden>Check status</button>
+          </div>
         </section>
-
-        <section aria-labelledby="coach-heading" class="feedback-subcard">
-          <h3 id="coach-heading">AI Coach Notes</h3>
-          <p id="ai-coach-response" class="coach-quote"></p>
-        </section>
-
-        <section aria-labelledby="resources-heading" class="feedback-subcard">
-          <h3 id="resources-heading">Recommended Practice Lessons</h3>
-          <div id="youtube-resources" class="video-grid"></div>
-        </section>
+        <aside class="session-panel" aria-labelledby="session-heading">
+          <div class="session-panel-heading"><p id="session-heading">Session progress</p><span id="session-state-badge" class="state-badge">Ready</span></div>
+          <p id="learner-status" role="status" aria-live="polite" aria-atomic="true" class="session-status">Check consent when you are ready to begin.</p>
+          <ol class="session-steps">
+            <li id="step-consent" class="is-current"><span>1</span><div><strong>Consent</strong><small>Confirm participation</small></div></li>
+            <li id="step-record"><span>2</span><div><strong>Record</strong><small>Capture one attempt</small></div></li>
+            <li id="step-process"><span>3</span><div><strong>Process</strong><small>Backend analysis</small></div></li>
+            <li id="step-review"><span>4</span><div><strong>Review</strong><small>Human decision</small></div></li>
+          </ol>
+          <p class="privacy-note"><span aria-hidden="true">i</span> Temporary full-session audio is removed after successful processing or bounded failure cleanup.</p>
+        </aside>
       </div>
+      <section id="feedback-container" class="feedback-section" aria-labelledby="feedback-heading" hidden>
+        <div class="section-heading-row"><div><p class="eyebrow"><span></span> Reviewed guidance</p><h2 id="feedback-heading">Your next practice step</h2></div></div>
+        <div class="feedback-grid">
+          <article><h3>Words to revisit</h3><div id="practice-words" class="word-list"></div></article>
+          <article><h3>Coach note</h3><p id="ai-coach-response" class="coach-note"></p></article>
+        </div>
+        <div><h3>Practice resource</h3><div id="youtube-resources" class="resource-grid"></div></div>
+      </section>
     </section>
 
-    <!-- ANNOTATOR REVIEW SECTION -->
-    <section id="annotator" class="page-section" hidden>
-      <div class="section-header">
-        <p class="eyebrow">REVIEWER WORKSPACE</p>
-        <h2>Annotator Review Station</h2>
-        <p class="section-desc">Review sentence-level audio evidence, verify transcript discrepancies, and calibrate model feedback.</p>
-      </div>
-
-      <div class="annotator-controls">
-        <h3>Private Inference Jobs</h3>
-        <p class="hint-text">Trigger a claimed job against the private Modal T4 GPU worker, or export for interactive review.</p>
-        <div id="inference-jobs" class="jobs-list"></div>
-
-        <div class="import-box">
-          <input id="inference-result" type="file" accept="application/json,.json" class="file-picker">
-          <button id="import-inference-result" type="button" class="btn-secondary">Import Result JSON</button>
-        </div>
-        <p id="inference-status" role="status" class="status-text"></p>
-      </div>
-
-      <div class="queue-section">
-        <h3>Human Review Queue</h3>
-        <div id="annotation-queue" class="queue-cards"></div>
-      </div>
+    <section id="annotator" class="page workspace-page" hidden>
+      <header class="workspace-header">
+        <div><p class="eyebrow"><span></span> Reviewer workspace</p><h1>Review evidence with context.</h1><p>Pakinggan ang sentence clip, ikumpara ang transcripts, at piliin lamang ang decision na suportado ng evidence.</p></div>
+        <span class="role-badge">Authorized reviewer</span>
+      </header>
+      <div class="queue-toolbar"><div><strong>Pending review</strong><p id="queue-summary">Loading review items…</p></div><button id="refresh-queue" type="button" class="button button-quiet">Refresh queue</button></div>
+      <p id="annotation-status" role="status" aria-live="polite" class="sr-status"></p>
+      <div id="annotation-queue" class="review-queue" aria-busy="true"></div>
     </section>
   </main>
 
   <footer class="site-footer">
-    <div class="footer-inner">
-      <div class="footer-col brand-col">
-        <div class="footer-logo">
-          <span class="brand-mark">GB</span>
-          <span class="footer-title">GabayBigkas</span>
-        </div>
-        <p class="footer-tagline">Guided English pronunciation learning with dual-engine speech verification.</p>
-      </div>
-
-      <div class="footer-col links-col">
-        <h4>Navigation</h4>
-        <ul>
-          <li><button type="button" data-public-page="home" class="footer-link">Home</button></li>
-          <li><button type="button" data-public-page="about" class="footer-link">About Project</button></li>
-          <li><button type="button" data-public-page="login" class="footer-link">Log in</button></li>
-        </ul>
-      </div>
-
-      <div class="footer-col safety-col">
-        <h4>Privacy &amp; Safety</h4>
-        <p class="footer-note">Proof of Concept trial. Local-first audio processing under strict adult consent. Voice recordings are never retained without explicit user authorization.</p>
-      </div>
-    </div>
-
-    <div class="footer-bottom">
-      <p>&copy; 2026 GabayBigkas. All rights reserved. Zero cloud audio retention without explicit authorization.</p>
-    </div>
+    <div class="footer-brand"><span class="brand-mark" aria-hidden="true">GB</span><div><strong>GabayBigkas</strong><p>Guided English practice with reviewable evidence.</p></div></div>
+    <div class="footer-meta"><span>Local-first MVP</span><span>Consenting adults only</span><span>© 2026 GabayBigkas</span></div>
   </footer>
-
   <script type="module" src="./app.js"></script>
 </body>
 </html>

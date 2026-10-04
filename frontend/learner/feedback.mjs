@@ -35,8 +35,7 @@ export function renderLearnerFeedback(root, payload) {
 }
 
 function normalizePracticeWord(item) {
-  if (!isBoundedText(item?.word, 80) || !isBoundedText(item?.reason, 300) || !isBoundedText(item?.pronunciation_tip, 300)) return null;
-  return { word: item.word, reason: item.reason, pronunciationTip: item.pronunciation_tip };
+  return isBoundedText(item, 80) ? item.trim() : null;
 }
 
 function normalizeYoutubeResource(item) {
@@ -49,22 +48,15 @@ function isBoundedText(value, maximum) {
 }
 
 function renderPracticeWord(item) {
-  const card = document.createElement('div');
-  card.className = 'practice-word-card';
-  const heading = document.createElement('strong');
-  heading.textContent = item.word;
-  const reason = document.createElement('span');
-  reason.className = 'word-reason';
-  reason.textContent = item.reason;
-  const tip = document.createElement('p');
-  tip.className = 'word-tip';
-  tip.textContent = `Tip: ${item.pronunciationTip}`;
-  card.append(heading, reason, tip);
-  return card;
+  const word = document.createElement('span');
+  word.className = 'practice-word';
+  word.textContent = item;
+  return word;
 }
 
 function renderYoutubeResource(item) {
   const container = document.createElement('div');
+  container.className = 'resource-card';
   const title = document.createElement('p');
   title.textContent = item.title;
   const frame = document.createElement('iframe');

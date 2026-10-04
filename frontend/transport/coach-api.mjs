@@ -19,8 +19,12 @@ export class CoachApi {
     return this.#json('/api/coaching/sessions', { method: 'POST', body: input });
   }
 
+  async coachingSession(sessionId) {
+    return this.#json(`/api/coaching/sessions/${encodeURIComponent(sessionId)}`);
+  }
+
   async uploadPcmChunk(sessionId, sequence, sampleRate, channels, bytes) {
-    const response = await fetch(`${this.baseUrl}/api/coaching/sessions/${sessionId}/audio/chunks`, {
+    const response = await fetch(`${this.baseUrl}/api/coaching/sessions/${encodeURIComponent(sessionId)}/audio/chunks`, {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -36,45 +40,25 @@ export class CoachApi {
   }
 
   async addAgoraTranscript(sessionId, event) {
-    await this.#json(`/api/coaching/sessions/${sessionId}/agora-transcript-events`, {
+    await this.#json(`/api/coaching/sessions/${encodeURIComponent(sessionId)}/agora-transcript-events`, {
       method: 'POST',
       body: event,
     });
   }
 
   async finalizeSession(sessionId) {
-    return this.#json(`/api/coaching/sessions/${sessionId}/finalize`, { method: 'POST' });
+    return this.#json(`/api/coaching/sessions/${encodeURIComponent(sessionId)}/finalize`, { method: 'POST' });
   }
 
-  async inferenceJobs() {
-    return this.#json('/api/inference/jobs');
-  }
-
-  async downloadInferenceBundle(jobId) {
-    const response = await fetch(`${this.baseUrl}/api/inference/jobs/${encodeURIComponent(jobId)}/export`, {
-      credentials: 'include',
-    });
-    await ensureSuccess(response);
-    return response.blob();
-  }
-
-  async createInferencePocTicket(jobId) {
-    return this.#json(`/api/inference/jobs/${encodeURIComponent(jobId)}/poc-ticket`, {
+  async createCoachFeedback(sessionId, agentId) {
+    return this.#json(`/api/coaching/sessions/${encodeURIComponent(sessionId)}/coach-feedback`, {
       method: 'POST',
+      body: { agent_id: agentId },
     });
   }
 
-  async runInferenceOnModal(jobId) {
-    return this.#json(`/api/inference/jobs/${encodeURIComponent(jobId)}/modal-run`, {
-      method: 'POST',
-    });
-  }
-
-  async importInferenceResult(jobId, result) {
-    return this.#json(`/api/inference/jobs/${encodeURIComponent(jobId)}/import`, {
-      method: 'POST',
-      body: result,
-    });
+  async annotationItem(id) {
+    return this.#json(`/api/annotation/items/${encodeURIComponent(id)}`);
   }
 
   async annotationQueue() {
@@ -82,14 +66,18 @@ export class CoachApi {
   }
 
   async decideAnnotation(id, decision) {
-    await this.#json(`/api/annotation/items/${id}/decision`, { method: 'POST', body: decision });
+    await this.#json(`/api/annotation/items/${encodeURIComponent(id)}/decision`, { method: 'POST', body: decision });
+  }
+
+  annotationAudioUrl(id) {
+    return `${this.baseUrl}/api/annotation/items/${encodeURIComponent(id)}/audio`;
   }
 
   async #json(path, options = {}) {
     const response = await fetch(`${this.baseUrl}${path}`, {
       method: options.method ?? 'GET',
       credentials: 'include',
-      headers: options.body ? { 'Content-Type': 'application/json' } : undefined,
+      headers: options.body ? { Accept: 'application/json', 'Content-Type': 'application/json' } : { Accept: 'application/json' },
       body: options.body ? JSON.stringify(options.body) : undefined,
     });
     await ensureSuccess(response);
@@ -100,5 +88,14 @@ export class CoachApi {
 async function ensureSuccess(response) {
   if (response.ok) return;
   const body = await response.json().catch(() => ({}));
-  throw new Error(body.message ?? `Request failed (${response.status})`);
+  throw new CoachApiError(body.message ?? `Request failed (${response.status})`, body.code ?? 'request_failed', response.status);
+}
+
+export class CoachApiError extends Error {
+  constructor(message, code, status) {
+    super(message);
+    this.name = 'CoachApiError';
+    this.code = code;
+    this.status = status;
+  }
 }
