@@ -26,6 +26,9 @@ async fn backend_mvp_http_flow_acknowledges_before_inference_and_keeps_results_p
         .seed_local_user("learner@example.test", "password12345", "learner")
         .unwrap();
     store
+        .seed_local_user("other@example.test", "password12345", "learner")
+        .unwrap();
+    store
         .seed_local_user("reviewer@example.test", "password12345", "annotator")
         .unwrap();
     let gate = Arc::new(tokio::sync::Notify::new());
@@ -72,6 +75,7 @@ async fn backend_mvp_http_flow_acknowledges_before_inference_and_keeps_results_p
         .unwrap();
     assert_eq!(unauth.status(), StatusCode::UNAUTHORIZED);
     let learner = login(&client, &api, "learner@example.test").await;
+    let other_learner = login(&client, &api, "other@example.test").await;
     let created = client.post(format!("{api}/api/coaching/sessions"))
         .header("origin", "https://frontend.example.test").header("cookie", &learner)
         .json(&json!({"exercise_id":"guided","expected_phrases":["Fifty people think clearly."],"recording_consent":true,"adult_consent":true}))
@@ -79,6 +83,39 @@ async fn backend_mvp_http_flow_acknowledges_before_inference_and_keeps_results_p
     assert_eq!(created.status(), StatusCode::CREATED);
     let session: Value = created.json().await.unwrap();
     let id = session["id"].as_str().unwrap();
+    let video_url = format!("{api}/api/coaching/sessions/{id}/practice-video");
+    assert_eq!(
+        client
+            .post(&video_url)
+            .header("origin", "https://frontend.example.test")
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::UNAUTHORIZED
+    );
+    assert_eq!(
+        client
+            .post(&video_url)
+            .header("origin", "https://frontend.example.test")
+            .header("cookie", &other_learner)
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        client
+            .post(&video_url)
+            .header("origin", "https://frontend.example.test")
+            .header("cookie", &learner)
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::CONFLICT
+    );
     let pcm: Vec<u8> = (0..16_000)
         .flat_map(|i| ((i % 200) as i16 * 30 - 3000).to_le_bytes())
         .collect();
@@ -150,6 +187,17 @@ async fn backend_mvp_http_flow_acknowledges_before_inference_and_keeps_results_p
     );
     assert!(result["coach_feedback"].is_null());
     assert_eq!(result["practice_words"].as_array().unwrap().len(), 1);
+    assert_eq!(
+        client
+            .post(&video_url)
+            .header("origin", "https://frontend.example.test")
+            .header("cookie", &learner)
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::SERVICE_UNAVAILABLE
+    );
     assert_eq!(result["audio_items"].as_array().unwrap().len(), 1);
     store.reserve_coach_agent(id).unwrap();
     store

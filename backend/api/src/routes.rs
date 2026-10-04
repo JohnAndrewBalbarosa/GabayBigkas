@@ -53,6 +53,10 @@ pub fn router(state: AppState) -> Router {
             post(create_coach_feedback),
         )
         .route(
+            "/api/coaching/sessions/{id}/practice-video",
+            post(crate::coach_routes::create_practice_video),
+        )
+        .route(
             "/api/coaching/sessions/{id}/agent",
             post(crate::coach_routes::start_agent),
         )

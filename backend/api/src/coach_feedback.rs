@@ -64,16 +64,27 @@ impl CoachFeedbackService {
         &self,
         binding: &CoachAgentBinding,
         practice_words: &[String],
+        cached_video: Option<YoutubeResource>,
     ) -> Result<GeneratedCoachFeedback, ApiError> {
         let agent_id = binding.agent_id.as_deref().ok_or(ApiError::NotFound)?;
         validate_agent_id(agent_id)?;
         let coach_message = self.latest_assistant_message(binding).await?;
-        let query = youtube_query(practice_words)?;
-        let youtube_resource = self.first_youtube_result(&query).await?;
+        let youtube_resource = match cached_video {
+            Some(video) => video,
+            None => self.recommend_video(practice_words).await?,
+        };
         Ok(GeneratedCoachFeedback {
             coach_message,
             youtube_resource,
         })
+    }
+
+    pub async fn recommend_video(
+        &self,
+        practice_words: &[String],
+    ) -> Result<YoutubeResource, ApiError> {
+        let query = youtube_query(practice_words)?;
+        self.first_youtube_result(&query).await
     }
 
     fn new(
@@ -147,7 +158,7 @@ impl CoachFeedbackService {
             .find_map(|item| {
                 validate_video_id(&item.id.video_id).ok()?;
                 Some(YoutubeResource {
-                    title: item.snippet.title.chars().take(300).collect(),
+                    title: item.snippet.title.chars().take(200).collect(),
                     url: format!("https://www.youtube.com/watch?v={}", item.id.video_id),
                     video_id: item.id.video_id,
                 })
@@ -399,7 +410,7 @@ mod tests {
             expires_at: crate::store::unix_now() + 600,
         };
         let feedback = service
-            .generate(&binding, &["Fifty people think clearly.".to_owned()])
+            .generate(&binding, &["Fifty people think clearly.".to_owned()], None)
             .await
             .unwrap();
         assert_eq!(feedback.coach_message, "Take your time.");
@@ -408,13 +419,23 @@ mod tests {
             "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
         );
         assert_eq!(calls.load(Ordering::SeqCst), 1);
+        let cached = service
+            .generate(
+                &binding,
+                &["Fifty people think clearly.".to_owned()],
+                Some(feedback.youtube_resource.clone()),
+            )
+            .await
+            .unwrap();
+        assert_eq!(cached.youtube_resource.video_id, "dQw4w9WgXcQ");
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
         let other = crate::store::CoachAgentBinding {
             session_id: "other".to_owned(),
             ..binding
         };
         assert!(
             service
-                .generate(&other, &["Other".to_owned()])
+                .generate(&other, &["Other".to_owned()], None)
                 .await
                 .is_err()
         );

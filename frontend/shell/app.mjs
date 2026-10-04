@@ -5,6 +5,8 @@ import {
   renderLearnerFeedbackError,
   renderLearnerFeedbackLoading,
   renderLearnerFeedbackPreview,
+  renderPracticeVideo,
+  renderPracticeVideoUnavailable,
 } from '../learner/feedback.mjs';
 import { LearnerCoachHandoff } from '../learner/coach-handoff.mjs';
 import { renderAnnotationQueue, stopAnnotationAudio } from '../annotator/review.mjs';
@@ -225,6 +227,7 @@ function bindLearnerSession() {
   start.addEventListener('click', async () => {
     start.disabled = true;
     renderLearnerFeedback(document, null);
+    renderPracticeVideo(document, null);
     setLearnerStatus('Requesting microphone access…');
     try {
       const result = await learner.start({
@@ -313,6 +316,17 @@ async function runLearnerFlow() {
       'Your word evidence is ready. The AI coach will connect after this review is visible.',
       result.transcription?.text,
     );
+
+    try {
+      const video = await api.practiceVideo(sessionId);
+      if (flowEpoch !== state.flowEpoch) return;
+      renderPracticeVideo(document, video);
+      renderLearnerStage('review');
+    } catch (error) {
+      if (flowEpoch !== state.flowEpoch) return;
+      renderPracticeVideoUnavailable(document, `Practice video is unavailable: ${userMessage(error)}`);
+    }
+
     await waitForNextPaint();
     const health = await api.health();
     if (flowEpoch !== state.flowEpoch) return;
@@ -342,6 +356,7 @@ async function runLearnerFlow() {
     );
     const feedback = await createFeedbackWithBoundedWait(sessionId);
     if (flowEpoch !== state.flowEpoch) return;
+    renderPracticeVideo(document, null);
     renderLearnerFeedback(document, feedback, result.transcription?.text);
     setLearnerStatus('Your AI practice guide is ready.');
     renderLearnerStage('review');

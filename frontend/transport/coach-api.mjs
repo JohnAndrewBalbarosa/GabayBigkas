@@ -77,6 +77,12 @@ export class CoachApi {
     });
   }
 
+  async practiceVideo(sessionId) {
+    return this.#json(`/api/coaching/sessions/${encodeURIComponent(sessionId)}/practice-video`, {
+      method: 'POST',
+    });
+  }
+
   async annotationItem(id) {
     return this.#json(`/api/annotation/items/${encodeURIComponent(id)}`);
   }

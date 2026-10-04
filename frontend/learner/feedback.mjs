@@ -40,6 +40,21 @@ export function renderLearnerFeedback(root, payload, transcript = '') {
   }
 }
 
+export function renderPracticeVideo(root, payload) {
+  const section = root.querySelector('#practice-video-container');
+  const content = root.querySelector('#practice-video-content');
+  const word = normalizePracticeWord(payload?.word);
+  const resource = normalizeYoutubeResource(payload?.resource);
+  section.hidden = !word || !resource;
+  content.replaceChildren();
+  if (word && resource) content.append(renderPracticeItem({ word, resource }));
+}
+
+export function renderPracticeVideoUnavailable(root, message) {
+  root.querySelector('#practice-video-container').hidden = false;
+  root.querySelector('#practice-video-content').textContent = message;
+}
+
 export function renderLearnerFeedbackPreview(root, words, detail, transcript = '') {
   const normalizedWords = normalizePracticeWords(words);
   const section = root.querySelector('#feedback-container');
@@ -84,8 +99,8 @@ export function normalizePracticeWords(words) {
 }
 
 function normalizeYoutubeResource(item) {
-  if (!isBoundedText(item?.title, 200) || !youtubeEmbedUrl(item?.video_id)) return null;
-  return { title: item.title, videoId: item.video_id };
+  if (!isBoundedText(item?.title, 300) || !youtubeEmbedUrl(item?.video_id)) return null;
+  return { title: item.title.trim().slice(0, 200), videoId: item.video_id };
 }
 
 function isBoundedText(value, maximum) {

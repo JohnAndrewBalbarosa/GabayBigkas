@@ -36,6 +36,14 @@ test('learner feedback accepts the bounded Rust response shape', () => {
   assert.equal(youtubeEmbedUrl('abcdefghijk'), 'https://www.youtube-nocookie.com/embed/abcdefghijk');
 });
 
+test('YouTube titles allowed by the backend remain visible within the UI title limit', () => {
+  const feedback = normalizeLearnerFeedback({
+    status: 'ready', words_to_practice: ['think'], coach_message: 'Practice this word.',
+    youtube_resources: [{ title: 'A'.repeat(300), video_id: 'abcdefghijk' }],
+  });
+  assert.equal(feedback.resources[0].title.length, 200);
+});
+
 test('learner preview accepts only bounded practice words', () => {
   assert.deepEqual(normalizePracticeWords([' think ', 'fifty']), ['think', 'fifty']);
   assert.deepEqual(normalizePracticeWords([{ word: 'unsafe' }]), []);
@@ -165,6 +173,16 @@ test('coach feedback uses the session-owned agent without accepting a browser ag
   assert.equal(request.url, 'https://api.example/api/coaching/sessions/session%2F1/coach-feedback');
   assert.equal(request.options.method, 'POST');
   assert.deepEqual(JSON.parse(request.options.body), {});
+});
+
+test('practice video request uses the owned session and no browser supplied query', async () => {
+  const request = await captureRequest(
+    () => new CoachApi('https://api.example').practiceVideo('session/1'),
+    { status: 'ready', word: 'think', resource: { title: 'Practice', video_id: 'abcdefghijk' } },
+  );
+  assert.equal(request.url, 'https://api.example/api/coaching/sessions/session%2F1/practice-video');
+  assert.equal(request.options.method, 'POST');
+  assert.equal(request.options.body, undefined);
 });
 
 test('coach transport exposes result and session-owned agent lifecycle routes', async () => {

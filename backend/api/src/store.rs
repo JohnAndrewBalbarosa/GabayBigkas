@@ -51,6 +51,18 @@ pub struct CoachFeedbackRecord {
     pub youtube_url: String,
 }
 
+#[derive(Clone, Debug)]
+pub struct PracticeVideoRecord {
+    pub title: String,
+    pub video_id: String,
+    pub url: String,
+}
+
+pub enum PracticeVideoClaim {
+    Generate,
+    Idempotent(PracticeVideoRecord),
+}
+
 pub enum CoachFeedbackClaim {
     Generate,
     Idempotent(CoachFeedbackRecord),
@@ -871,6 +883,85 @@ impl Store {
         Ok(CoachFeedbackClaim::Generate)
     }
 
+    pub fn claim_practice_video(&self, session_id: &str) -> Result<PracticeVideoClaim, ApiError> {
+        let mut connection = self.connection.lock().map_err(|_| ApiError::Internal)?;
+        let transaction = connection.transaction()?;
+        transaction.execute(
+            "DELETE FROM practice_videos WHERE session_id=?1 AND status='pending' AND updated_at<?2",
+            params![session_id, now() - 30],
+        )?;
+        let existing = transaction
+            .query_row(
+                "SELECT status,title,video_id,url FROM practice_videos WHERE session_id=?1",
+                [session_id],
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, Option<String>>(1)?,
+                        row.get::<_, Option<String>>(2)?,
+                        row.get::<_, Option<String>>(3)?,
+                    ))
+                },
+            )
+            .optional()?;
+        if let Some((status, title, video_id, url)) = existing {
+            if status == "completed" {
+                return Ok(PracticeVideoClaim::Idempotent(PracticeVideoRecord {
+                    title: title.ok_or(ApiError::Internal)?,
+                    video_id: video_id.ok_or(ApiError::Internal)?,
+                    url: url.ok_or(ApiError::Internal)?,
+                }));
+            }
+            return Err(ApiError::Conflict(
+                "practice video search is in progress".to_owned(),
+            ));
+        }
+        transaction.execute(
+            "INSERT INTO practice_videos(session_id,status,created_at,updated_at) VALUES(?1,'pending',?2,?2)",
+            params![session_id, now()],
+        )?;
+        transaction.commit()?;
+        Ok(PracticeVideoClaim::Generate)
+    }
+
+    pub fn complete_practice_video(
+        &self,
+        session_id: &str,
+        record: &PracticeVideoRecord,
+    ) -> Result<(), ApiError> {
+        let rows = self.connection.lock().map_err(|_| ApiError::Internal)?.execute(
+            "UPDATE practice_videos SET status='completed',title=?2,video_id=?3,url=?4,updated_at=?5 WHERE session_id=?1 AND status='pending'",
+            params![session_id, record.title, record.video_id, record.url, now()],
+        )?;
+        if rows != 1 {
+            return Err(ApiError::Conflict(
+                "practice video state changed".to_owned(),
+            ));
+        }
+        Ok(())
+    }
+
+    pub fn release_practice_video_claim(&self, session_id: &str) -> Result<(), ApiError> {
+        self.connection
+            .lock()
+            .map_err(|_| ApiError::Internal)?
+            .execute(
+                "DELETE FROM practice_videos WHERE session_id=?1 AND status='pending'",
+                [session_id],
+            )?;
+        Ok(())
+    }
+
+    pub fn completed_practice_video(
+        &self,
+        session_id: &str,
+    ) -> Result<Option<PracticeVideoRecord>, ApiError> {
+        self.connection.lock().map_err(|_| ApiError::Internal)?.query_row(
+            "SELECT title,video_id,url FROM practice_videos WHERE session_id=?1 AND status='completed'", [session_id],
+            |row| Ok(PracticeVideoRecord { title: row.get(0)?, video_id: row.get(1)?, url: row.get(2)? }),
+        ).optional().map_err(Into::into)
+    }
+
     pub fn complete_coach_feedback(
         &self,
         session_id: &str,
@@ -1113,6 +1204,7 @@ CREATE TABLE IF NOT EXISTS inference_jobs(id TEXT PRIMARY KEY,session_id TEXT NO
 CREATE INDEX IF NOT EXISTS inference_jobs_status_expiry_idx ON inference_jobs(status,expires_at);
 CREATE TABLE IF NOT EXISTS modal_inference_claims(job_id TEXT PRIMARY KEY REFERENCES inference_jobs(id) ON DELETE CASCADE,claimed_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS coach_feedback(session_id TEXT PRIMARY KEY REFERENCES coaching_sessions(id),agent_id TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('pending','completed')),coach_message TEXT,youtube_title TEXT,youtube_video_id TEXT,youtube_url TEXT,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS practice_videos(session_id TEXT PRIMARY KEY REFERENCES coaching_sessions(id),status TEXT NOT NULL CHECK(status IN ('pending','completed')),title TEXT,video_id TEXT,url TEXT,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS coach_agents(session_id TEXT PRIMARY KEY REFERENCES coaching_sessions(id),agent_id TEXT UNIQUE,channel TEXT NOT NULL UNIQUE,agent_uid TEXT NOT NULL,client_uid TEXT NOT NULL,status TEXT NOT NULL,expires_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS session_transcriptions(session_id TEXT PRIMARY KEY REFERENCES coaching_sessions(id),result_json TEXT NOT NULL,created_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS annotation_items(id TEXT PRIMARY KEY,session_id TEXT NOT NULL REFERENCES coaching_sessions(id),expected_text TEXT NOT NULL,agora_text TEXT NOT NULL,buzz_text TEXT NOT NULL,sentence_start_ms INTEGER NOT NULL,sentence_end_ms INTEGER NOT NULL,focus_start_ms INTEGER NOT NULL,focus_end_ms INTEGER NOT NULL,clip_key TEXT NOT NULL,status TEXT NOT NULL,decision TEXT,corrected_text TEXT,notes TEXT,annotator_id TEXT REFERENCES users(id),reviewed_at INTEGER,created_at INTEGER NOT NULL);
@@ -1120,8 +1212,55 @@ CREATE TABLE IF NOT EXISTS annotation_items(id TEXT PRIMARY KEY,session_id TEXT 
 
 #[cfg(test)]
 mod tests {
-    use super::{FinalizationEnqueue, INFERENCE_QUEUE_CAPACITY, Store};
+    use super::{
+        FinalizationEnqueue, INFERENCE_QUEUE_CAPACITY, PracticeVideoClaim, PracticeVideoRecord,
+        Store,
+    };
     use crate::error::ApiError;
+
+    #[test]
+    fn practice_video_search_is_claimed_once_and_cached_per_session() {
+        let directory = tempfile::tempdir().unwrap();
+        let store = Store::open(&directory.path().join("coach.sqlite3")).unwrap();
+        store
+            .seed_local_user("learner@example.test", "password12345", "learner")
+            .unwrap();
+        let learner = store
+            .find_local_user("learner@example.test")
+            .unwrap()
+            .unwrap();
+        let session = store
+            .create_coaching_session(
+                &learner.id,
+                "exercise",
+                &["Fifty people think clearly.".to_owned()],
+                true,
+            )
+            .unwrap();
+        assert!(matches!(
+            store.claim_practice_video(&session.id).unwrap(),
+            PracticeVideoClaim::Generate
+        ));
+        assert!(matches!(
+            store.claim_practice_video(&session.id),
+            Err(ApiError::Conflict(_))
+        ));
+        store.release_practice_video_claim(&session.id).unwrap();
+        assert!(matches!(
+            store.claim_practice_video(&session.id).unwrap(),
+            PracticeVideoClaim::Generate
+        ));
+        let video = PracticeVideoRecord {
+            title: "TH practice".to_owned(),
+            video_id: "abcdefghijk".to_owned(),
+            url: "https://www.youtube.com/watch?v=abcdefghijk".to_owned(),
+        };
+        store.complete_practice_video(&session.id, &video).unwrap();
+        match store.claim_practice_video(&session.id).unwrap() {
+            PracticeVideoClaim::Idempotent(cached) => assert_eq!(cached.video_id, video.video_id),
+            PracticeVideoClaim::Generate => panic!("completed search was repeated"),
+        }
+    }
 
     #[test]
     fn finalization_queue_is_atomic_and_only_processing_work_becomes_terminal_on_restart() {

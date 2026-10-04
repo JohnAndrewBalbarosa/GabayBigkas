@@ -15,7 +15,7 @@ Ang transcript disagreement ay review signal lamang. Hindi ito automatic pronunc
 - Temporary full-session audio cleanup pagkatapos ng successful import o 24-hour bounded expiry.
 - Browser learner/annotator shell at independent PCM `AudioWorklet` recorder.
 - Private Modal T4 endpoint is the primary MVP GPU boundary. Finalize persists a bounded FIFO entry; one Rust worker claims each session, builds one inference bundle, sends it with server-held proxy credentials, and validates the returned result before import. No auto-retry.
-- The authenticated backend creates a session-owned Agora agent, mints bounded RTC/RTM credentials using the official token library, reads only the assistant reply after that session's transcript-grounded request, and performs one YouTube Data API search. BuzzASR is transcription-only. The frontend receives bounded coach-feedback JSON.
+- After BuzzASR transcription, the authenticated backend caches one session-owned YouTube practice video. The frontend shows it while awaiting the Agora voice coach and keeps it visible if that coach times out. The backend creates a session-owned Agora agent, mints bounded RTC/RTM credentials using the official token library, and reads only the assistant reply after that session's transcript-grounded request. BuzzASR is transcription-only; the frontend receives bounded coach-feedback JSON when the coach succeeds.
 - Manual Modal controls and interactive Colab transfer are deprecated and absent from the product HTTP contract.
 - Native Rust backend deployment contract para sa Lightsail. Zero-charge use requires account-specific active credit confirmation.
 - AWS GPU deployment and lifecycle scaling are post-MVP TODO documentation only.

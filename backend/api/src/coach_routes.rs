@@ -8,7 +8,7 @@ use serde_json::Value;
 
 use crate::{
     AppState,
-    coach_session::{self, CoachAgentResponse, CoachFeedbackResponse},
+    coach_session::{self, CoachAgentResponse, CoachFeedbackResponse, PracticeVideoResponse},
     error::ApiError,
     routes::{ensure_allowed_origin, owned_session, require_principal, require_role, validate_id},
 };
@@ -57,6 +57,20 @@ pub async fn create_coach_feedback(
     let session = owned_session(&state, &id, &principal)?;
     Ok(Json(
         coach_session::fetch_owned_feedback(&state, &session, request.agent_id.as_deref()).await?,
+    ))
+}
+
+pub async fn create_practice_video(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+) -> Result<Json<PracticeVideoResponse>, ApiError> {
+    ensure_allowed_origin(&headers, state.config.allowed_origin.as_deref())?;
+    validate_id(&id)?;
+    let principal = require_role(&state, &headers, "learner")?;
+    let session = owned_session(&state, &id, &principal)?;
+    Ok(Json(
+        coach_session::fetch_practice_video(&state, &session).await?,
     ))
 }
 

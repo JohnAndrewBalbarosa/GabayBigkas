@@ -60,6 +60,25 @@ test('learner feedback shows the transcript, coach note, focus word, and video t
   await expect(page.getByTitle('very: V sound practice')).toBeVisible();
 });
 
+test('practice video remains visible when the voice coach times out', async ({ page }) => {
+  const source = await readFile(new URL('../../frontend/learner/feedback.mjs', import.meta.url), 'utf8');
+  await page.setContent(`
+    <section id="practice-video-container" hidden><div id="practice-video-content"></div></section>
+    <section id="feedback-container" hidden><div id="feedback-loading" hidden>
+      <span id="feedback-spinner"></span><strong id="feedback-loading-title"></strong>
+      <p id="feedback-loading-detail"></p></div><div id="feedback-content" hidden></div></section>
+  `);
+  await page.evaluate(async (source) => {
+    const url = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
+    const { renderPracticeVideo, renderLearnerFeedbackError } = await import(url);
+    renderPracticeVideo(document, { word: 'think', resource: { title: 'TH practice', video_id: 'abcdefghijk' } });
+    renderLearnerFeedbackError(document, 'The AI coach did not respond within one minute.');
+    URL.revokeObjectURL(url);
+  }, source);
+  await expect(page.getByTitle('think: TH practice')).toBeVisible();
+  await expect(page.getByText('The AI coach did not respond within one minute.')).toBeVisible();
+});
+
 test('annotator can submit every backend decision field from private sentence evidence', async ({ page }) => {
   let submitted;
   await page.route('**/api/**', async route => {

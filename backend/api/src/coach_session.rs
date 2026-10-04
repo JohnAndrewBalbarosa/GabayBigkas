@@ -5,7 +5,10 @@ use crate::{
     AppState,
     coach_feedback::YoutubeResource,
     error::ApiError,
-    store::{CoachFeedbackClaim, CoachFeedbackRecord, CoachingSession, Store, unix_now},
+    store::{
+        CoachFeedbackClaim, CoachFeedbackRecord, CoachingSession, PracticeVideoClaim,
+        PracticeVideoRecord, Store, unix_now,
+    },
 };
 
 #[derive(Serialize)]
@@ -30,6 +33,66 @@ pub struct CoachFeedbackResponse {
     pub words_to_practice: Vec<String>,
     pub youtube_resources: Vec<YoutubeResource>,
     pub idempotent: bool,
+}
+
+#[derive(Serialize)]
+pub struct PracticeVideoResponse {
+    pub status: &'static str,
+    pub word: String,
+    pub resource: YoutubeResource,
+    pub idempotent: bool,
+}
+
+// Mental model: claim one session-owned search, persist its safe result, and
+// release the claim on a provider failure so a learner can retry explicitly.
+pub async fn fetch_practice_video(
+    state: &AppState,
+    session: &CoachingSession,
+) -> Result<PracticeVideoResponse, ApiError> {
+    if state.store.transcription_result(&session.id)?.is_none() {
+        return Err(ApiError::Conflict("transcription is not ready".to_owned()));
+    }
+    let word = session_practice_words(state, session)?
+        .into_iter()
+        .next()
+        .ok_or_else(|| ApiError::Conflict("no focus word is available".to_owned()))?;
+    let service = state
+        .coach_feedback
+        .as_ref()
+        .ok_or(ApiError::ModelUnavailable)?;
+    let (record, idempotent) = match state.store.claim_practice_video(&session.id)? {
+        PracticeVideoClaim::Idempotent(record) => (record, true),
+        PracticeVideoClaim::Generate => {
+            let result = service.recommend_video(std::slice::from_ref(&word)).await;
+            match result {
+                Ok(video) => {
+                    let record = PracticeVideoRecord {
+                        title: video.title,
+                        video_id: video.video_id,
+                        url: video.url,
+                    };
+                    state.store.complete_practice_video(&session.id, &record)?;
+                    tracing::info!(event = "practice.video.completed", session_id = %session.id);
+                    (record, false)
+                }
+                Err(error) => {
+                    state.store.release_practice_video_claim(&session.id)?;
+                    tracing::warn!(event = "practice.video.failed", session_id = %session.id, error = %error);
+                    return Err(error);
+                }
+            }
+        }
+    };
+    Ok(PracticeVideoResponse {
+        status: "ready",
+        word,
+        resource: YoutubeResource {
+            title: record.title,
+            video_id: record.video_id,
+            url: record.url,
+        },
+        idempotent,
+    })
 }
 
 pub async fn start_owned_agent(
@@ -183,7 +246,18 @@ pub async fn fetch_owned_feedback(
                 agent_id.to_owned(),
             );
             let result = async {
-                let generated = service.generate(&binding, &practice_words).await?;
+                let cached_video =
+                    state
+                        .store
+                        .completed_practice_video(&session.id)?
+                        .map(|record| YoutubeResource {
+                            title: record.title,
+                            video_id: record.video_id,
+                            url: record.url,
+                        });
+                let generated = service
+                    .generate(&binding, &practice_words, cached_video)
+                    .await?;
                 state.store.complete_coach_feedback(
                     &session.id,
                     agent_id,
