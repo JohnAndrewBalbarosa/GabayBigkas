@@ -14,7 +14,6 @@ def transcribe_audio_windows(
     step_samples = sample_rate * 25
     duration = len(audio) / sample_rate
     chunks: list[dict[str, Any]] = []
-    texts: list[str] = []
     for start in range(0, len(audio), step_samples):
         end = min(start + window_samples, len(audio))
         raw = transcriber(
@@ -38,7 +37,7 @@ def transcribe_audio_windows(
                 text = str(chunk.get("text", "")).strip()
                 if text:
                     chunks.append({"text": text, "timestamp": (begin, finish)})
-                    texts.append(text)
         if end == len(audio):
             break
-    return {"text": " ".join(texts), "chunks": chunks}
+    chunks.sort(key=lambda chunk: chunk["timestamp"])
+    return {"text": " ".join(chunk["text"] for chunk in chunks), "chunks": chunks}

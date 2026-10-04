@@ -37,6 +37,23 @@ class WindowedTranscriptionTests(unittest.TestCase):
         )
         self.assertEqual(result["text"], "hello")
 
+    def test_model_words_are_ordered_before_backend_validation(self):
+        result = WINDOWS.transcribe_audio_windows(
+            lambda *_a, **_k: {
+                "chunks": [
+                    {"text": "second", "timestamp": (1, 2)},
+                    {"text": "first", "timestamp": (0, 1)},
+                ]
+            },
+            [0] * 2,
+            1,
+        )
+        self.assertEqual(result["text"], "first second")
+        self.assertEqual(
+            [chunk["timestamp"] for chunk in result["chunks"]],
+            [(0.0, 1.0), (1.0, 2.0)],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
