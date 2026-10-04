@@ -130,7 +130,7 @@ impl CoachFeedbackService {
             .query(&[
                 ("part", "snippet"),
                 ("type", "video"),
-                ("maxResults", "1"),
+                ("maxResults", "3"),
                 ("safeSearch", "strict"),
                 ("videoEmbeddable", "true"),
                 ("videoSyndicated", "true"),
@@ -141,16 +141,20 @@ impl CoachFeedbackService {
             .await
             .map_err(|_| ApiError::ModelUnavailable)?;
         let search: YoutubeSearch = provider_json(response).await?;
-        let item =
-            search.items.into_iter().next().ok_or_else(|| {
-                ApiError::Conflict("YouTube returned no practice video".to_owned())
-            })?;
-        validate_video_id(&item.id.video_id)?;
-        Ok(YoutubeResource {
-            title: item.snippet.title.chars().take(300).collect(),
-            url: format!("https://www.youtube.com/watch?v={}", item.id.video_id),
-            video_id: item.id.video_id,
-        })
+        search
+            .items
+            .into_iter()
+            .find_map(|item| {
+                validate_video_id(&item.id.video_id).ok()?;
+                Some(YoutubeResource {
+                    title: item.snippet.title.chars().take(300).collect(),
+                    url: format!("https://www.youtube.com/watch?v={}", item.id.video_id),
+                    video_id: item.id.video_id,
+                })
+            })
+            .ok_or_else(|| {
+                ApiError::Conflict("YouTube returned no embeddable practice video".to_owned())
+            })
     }
 }
 
@@ -366,7 +370,7 @@ mod tests {
                 let calls = youtube_calls.clone();
                 async move {
                     calls.fetch_add(1, Ordering::SeqCst);
-                    assert_eq!(query["maxResults"], "1");
+                    assert_eq!(query["maxResults"], "3");
                     assert_eq!(query["safeSearch"], "strict");
                     assert_eq!(query["type"], "video");
                     assert!(query["q"].contains("Fifty people"));
@@ -444,5 +448,22 @@ mod tests {
         assert!(validate_video_id("not a video id").is_err());
         assert!(validate_agent_id("8ed6a5c3-80da-4910-8e31-92c55c8fea44").is_ok());
         assert!(validate_video_id("dQw4w9WgXcQ").is_ok());
+    }
+
+    #[test]
+    fn first_valid_video_id_is_selected_when_earlier_items_are_invalid() {
+        // Simulates YouTube returning a restricted/malformed video before a valid one.
+        // The old code (maxResults=1) would have failed hard; the new code skips bad items.
+        use serde_json::json;
+        let items = json!([
+            {"id": {"videoId": ""}, "snippet": {"title": "Restricted"}},
+            {"id": {"videoId": "dQw4w9WgXcQ"}, "snippet": {"title": "Sovereign pronunciation"}}
+        ]);
+        let search: super::YoutubeSearch = serde_json::from_value(json!({"items": items})).unwrap();
+        let result = search.items.into_iter().find_map(|item| {
+            validate_video_id(&item.id.video_id).ok()?;
+            Some(item.id.video_id)
+        });
+        assert_eq!(result.as_deref(), Some("dQw4w9WgXcQ"));
     }
 }
