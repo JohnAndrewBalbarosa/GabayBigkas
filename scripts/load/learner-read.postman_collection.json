@@ -1,0 +1,74 @@
+{
+  "info": {
+    "name": "GabayBigkas learner read benchmark",
+    "description": "Read-only learner workload. Run the Learner reads folder with Postman Performance Runner after provisioning a consenting-adult test learner and owned session. No provider or write route is called.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Learner reads",
+      "description": "One iteration performs three authenticated GET requests. Do not include login or session creation in this performance folder.",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const baseUrl = String(pm.variables.get('baseUrl') || '').replace(/\\/$/, '');",
+              "const approvedBaseUrl = String(pm.variables.get('approvedBaseUrl') || '').replace(/\\/$/, '');",
+              "const loopback = /^http:\\/\\/(127\\.0\\.0\\.1|localhost)(:\\d+)?$/i.test(baseUrl);",
+              "if (!loopback && (!approvedBaseUrl || baseUrl !== approvedBaseUrl)) throw new Error('Remote load requires an exact approvedBaseUrl match');",
+              "if (!/^https?:\\/\\/[^/?#]+$/i.test(baseUrl)) throw new Error('baseUrl must be an HTTP(S) origin without a path');",
+              "if (!pm.variables.get('sessionToken')) throw new Error('Set a private learner sessionToken');",
+              "if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(pm.variables.get('sessionId') || ''))) throw new Error('Set an owned UUID sessionId');"
+            ]
+          }
+        }
+      ],
+      "item": [
+        {
+          "name": "Authenticated session read",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Cookie", "value": "coach_session={{sessionToken}}" }],
+            "url": "{{baseUrl}}/api/auth/session"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Authenticated learner session: 200', () => pm.response.to.have.status(200));",
+            "if (pm.response.code === 200) pm.test('Role is learner', () => pm.expect(pm.response.json().role).to.eql('learner'));"
+          ] } }]
+        },
+        {
+          "name": "Owned coaching session read",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Cookie", "value": "coach_session={{sessionToken}}" }],
+            "url": "{{baseUrl}}/api/coaching/sessions/{{sessionId}}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Owned session read: 200', () => pm.response.to.have.status(200));",
+            "if (pm.response.code === 200) pm.test('Returned owned session ID matches fixture', () => pm.expect(pm.response.json().id).to.eql(pm.variables.get('sessionId')));"
+          ] } }]
+        },
+        {
+          "name": "Owned result read",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Cookie", "value": "coach_session={{sessionToken}}" }],
+            "url": "{{baseUrl}}/api/coaching/sessions/{{sessionId}}/result"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Owned result read: 200', () => pm.response.to.have.status(200));",
+            "if (pm.response.code === 200) pm.test('Result session ID matches fixture', () => pm.expect(pm.response.json().session_id).to.eql(pm.variables.get('sessionId')));"
+          ] } }]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:4320" },
+    { "key": "approvedBaseUrl", "value": "" },
+    { "key": "sessionId", "value": "" },
+    { "key": "sessionToken", "value": "" }
+  ]
+}
