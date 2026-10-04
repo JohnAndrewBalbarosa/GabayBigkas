@@ -208,6 +208,12 @@ pub async fn run_expired_job_cleanup(store: Arc<Store>, bundles: InferenceBundle
             Ok(paths) => paths.iter().for_each(|path| bundles.cleanup_audio(path)),
             Err(error) => tracing::error!(event = "inference.expiry.failed", error = %error),
         }
+        match store.expire_capture_sessions() {
+            Ok(ids) => ids.iter().for_each(|id| {
+                crate::audio::cleanup_capture_directory(&bundles.private_audio_root, id)
+            }),
+            Err(error) => tracing::error!(event = "audio.capture_expiry.failed", error = %error),
+        }
     }
 }
 

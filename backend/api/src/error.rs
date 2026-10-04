@@ -16,6 +16,10 @@ pub enum ApiError {
     Conflict(String),
     #[error("model unavailable")]
     ModelUnavailable,
+    #[error("service capacity reached; retry shortly")]
+    Busy,
+    #[error("too many login attempts; retry after one minute")]
+    RateLimited,
     #[error("internal operation failed")]
     Internal,
 }
@@ -35,10 +39,23 @@ impl IntoResponse for ApiError {
             Self::Invalid(_) => (StatusCode::BAD_REQUEST, "invalid"),
             Self::Conflict(_) => (StatusCode::CONFLICT, "conflict"),
             Self::ModelUnavailable => (StatusCode::SERVICE_UNAVAILABLE, "model_unavailable"),
+            Self::Busy => (StatusCode::SERVICE_UNAVAILABLE, "busy"),
+            Self::RateLimited => (StatusCode::TOO_MANY_REQUESTS, "rate_limited"),
             Self::Internal => (StatusCode::INTERNAL_SERVER_ERROR, "internal"),
         };
         let message = self.to_string();
-        (status, Json(ErrorBody { code, message })).into_response()
+        let mut response = (status, Json(ErrorBody { code, message })).into_response();
+        if code == "busy" || code == "rate_limited" {
+            response.headers_mut().insert(
+                axum::http::header::RETRY_AFTER,
+                axum::http::HeaderValue::from_static(if code == "rate_limited" {
+                    "60"
+                } else {
+                    "1"
+                }),
+            );
+        }
+        response
     }
 }
 

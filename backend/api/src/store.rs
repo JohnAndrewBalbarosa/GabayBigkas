@@ -56,6 +56,17 @@ pub enum CoachFeedbackClaim {
     Idempotent(CoachFeedbackRecord),
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CoachAgentBinding {
+    pub session_id: String,
+    pub agent_id: Option<String>,
+    pub channel: String,
+    pub agent_uid: String,
+    pub client_uid: String,
+    pub status: String,
+    pub expires_at: i64,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct CoachingSession {
     pub id: String,
@@ -254,6 +265,129 @@ impl Store {
                 params![id, status, now()],
             )?;
         Ok(())
+    }
+
+    pub fn claim_session_finalization(&self, id: &str) -> Result<bool, ApiError> {
+        let changed = self.connection.lock().map_err(|_| ApiError::Internal)?.execute(
+            "UPDATE coaching_sessions SET status='preprocessing',updated_at=?2 WHERE id=?1 AND status='capturing'",
+            params![id, now()],
+        )?;
+        Ok(changed == 1)
+    }
+
+    pub fn recover_interrupted_work(&self) -> Result<Vec<String>, ApiError> {
+        let mut connection = self.connection.lock().map_err(|_| ApiError::Internal)?;
+        let transaction = connection.transaction()?;
+        let paths = {
+            let mut statement = transaction.prepare(
+                "SELECT audio_path FROM inference_jobs WHERE status IN ('pending_manual_inference','exported','importing')",
+            )?;
+            statement
+                .query_map([], |row| row.get::<_, String>(0))?
+                .collect::<Result<Vec<_>, _>>()?
+        };
+        transaction.execute(
+            "UPDATE coaching_sessions SET status='analysis_unavailable',updated_at=?1 WHERE id IN (SELECT session_id FROM inference_jobs WHERE status IN ('pending_manual_inference','exported','importing'))",
+            [now()],
+        )?;
+        transaction.execute(
+            "UPDATE inference_jobs SET status='analysis_unavailable',updated_at=?1 WHERE status IN ('pending_manual_inference','exported','importing')",
+            [now()],
+        )?;
+        transaction.execute("UPDATE coaching_sessions SET status='failed',updated_at=?1 WHERE status='preprocessing'", [now()])?;
+        transaction.execute("DELETE FROM modal_inference_claims", [])?;
+        transaction.execute("DELETE FROM coach_feedback WHERE status='pending'", [])?;
+        transaction.execute(
+            "UPDATE coach_agents SET status='interrupted' WHERE status='starting'",
+            [],
+        )?;
+        transaction.commit()?;
+        Ok(paths)
+    }
+
+    pub fn expire_capture_sessions(&self) -> Result<Vec<String>, ApiError> {
+        let mut connection = self.connection.lock().map_err(|_| ApiError::Internal)?;
+        let transaction = connection.transaction()?;
+        let ids = {
+            let mut statement = transaction.prepare("SELECT id FROM coaching_sessions WHERE (status='capturing' AND updated_at<=?1) OR status IN ('failed','analysis_unavailable')")?;
+            statement
+                .query_map([now() - 86_400], |row| row.get::<_, String>(0))?
+                .collect::<Result<Vec<_>, _>>()?
+        };
+        transaction.execute("UPDATE coaching_sessions SET status='failed',updated_at=?1 WHERE status='capturing' AND updated_at<=?2", params![now(), now() - 86_400])?;
+        transaction.commit()?;
+        Ok(ids)
+    }
+
+    pub fn reserve_coach_agent(&self, session_id: &str) -> Result<CoachAgentBinding, ApiError> {
+        let mut connection = self.connection.lock().map_err(|_| ApiError::Internal)?;
+        let transaction = connection.transaction()?;
+        let status: String = transaction
+            .query_row(
+                "SELECT status FROM coaching_sessions WHERE id=?1",
+                [session_id],
+                |row| row.get(0),
+            )
+            .optional()?
+            .ok_or(ApiError::NotFound)?;
+        if status != "review_ready" {
+            return Err(ApiError::Conflict(
+                "transcription must complete before starting the coach".to_owned(),
+            ));
+        }
+        let binding = CoachAgentBinding {
+            session_id: session_id.to_owned(),
+            agent_id: None,
+            channel: format!("coach-{}", Uuid::new_v4().simple()),
+            agent_uid: "1001".to_owned(),
+            client_uid: "1002".to_owned(),
+            status: "starting".to_owned(),
+            expires_at: now() + 600,
+        };
+        let inserted = transaction.execute(
+            "INSERT OR IGNORE INTO coach_agents(session_id,channel,agent_uid,client_uid,status,expires_at) VALUES(?1,?2,?3,?4,'starting',?5)",
+            params![session_id, binding.channel, binding.agent_uid, binding.client_uid, binding.expires_at],
+        )?;
+        if inserted == 0 {
+            return Err(ApiError::Conflict(
+                "coach agent already exists or is starting".to_owned(),
+            ));
+        }
+        transaction.commit()?;
+        Ok(binding)
+    }
+
+    pub fn coach_agent(&self, session_id: &str) -> Result<Option<CoachAgentBinding>, ApiError> {
+        self.connection.lock().map_err(|_| ApiError::Internal)?.query_row(
+            "SELECT session_id,agent_id,channel,agent_uid,client_uid,status,expires_at FROM coach_agents WHERE session_id=?1", [session_id],
+            |row| Ok(CoachAgentBinding { session_id: row.get(0)?, agent_id: row.get(1)?, channel: row.get(2)?, agent_uid: row.get(3)?, client_uid: row.get(4)?, status: row.get(5)?, expires_at: row.get(6)? }),
+        ).optional().map_err(Into::into)
+    }
+
+    pub fn set_coach_agent_status(
+        &self,
+        session_id: &str,
+        agent_id: Option<&str>,
+        status: &str,
+    ) -> Result<(), ApiError> {
+        self.connection.lock().map_err(|_| ApiError::Internal)?.execute(
+            "UPDATE coach_agents SET agent_id=COALESCE(?2,agent_id),status=?3 WHERE session_id=?1",
+            params![session_id, agent_id, status],
+        )?;
+        Ok(())
+    }
+
+    pub fn transcription_result(&self, session_id: &str) -> Result<Option<String>, ApiError> {
+        self.connection
+            .lock()
+            .map_err(|_| ApiError::Internal)?
+            .query_row(
+                "SELECT result_json FROM session_transcriptions WHERE session_id=?1",
+                [session_id],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(Into::into)
     }
 
     pub fn session_has_adult_consent(&self, session_id: &str) -> Result<bool, ApiError> {
@@ -472,6 +606,7 @@ impl Store {
         id: &str,
         result_sha256: &str,
         items: &[AnnotationItem],
+        result_json: &str,
     ) -> Result<(), ApiError> {
         let current = now();
         let mut connection = self.connection.lock().map_err(|_| ApiError::Internal)?;
@@ -490,6 +625,10 @@ impl Store {
         transaction.execute(
             "UPDATE inference_jobs SET status='completed',updated_at=?2 WHERE id=?1",
             params![id, current],
+        )?;
+        transaction.execute(
+            "INSERT INTO session_transcriptions(session_id,result_json,created_at) VALUES(?1,?2,?3)",
+            params![session_id, result_json, current],
         )?;
         transaction.execute(
             "UPDATE coaching_sessions SET status='review_ready',updated_at=?2 WHERE id=?1",
@@ -521,7 +660,28 @@ impl Store {
     }
 
     pub fn add_audio_chunk(&self, session_id: &str, chunk: &AudioChunk) -> Result<bool, ApiError> {
-        let connection = self.connection.lock().map_err(|_| ApiError::Internal)?;
+        self.add_audio_chunk_bounded(session_id, chunk, 0)
+    }
+
+    pub fn add_audio_chunk_bounded(
+        &self,
+        session_id: &str,
+        chunk: &AudioChunk,
+        bytes: usize,
+    ) -> Result<bool, ApiError> {
+        let mut connection = self.connection.lock().map_err(|_| ApiError::Internal)?;
+        let transaction = connection.transaction()?;
+        let connection = &transaction;
+        let status: String = connection.query_row(
+            "SELECT status FROM coaching_sessions WHERE id=?1",
+            [session_id],
+            |row| row.get(0),
+        )?;
+        if status != "capturing" {
+            return Err(ApiError::Conflict(
+                "session is no longer accepting audio".to_owned(),
+            ));
+        }
         let existing = connection
             .query_row(
                 "SELECT sample_rate,channels,path FROM audio_chunks WHERE session_id=?1 AND sequence=?2",
@@ -538,10 +698,25 @@ impl Store {
                 "audio sequence already contains different data".to_owned(),
             ));
         }
+        let total: i64 = connection.query_row(
+            "SELECT COALESCE(SUM(bytes),0) FROM audio_chunk_usage WHERE session_id=?1",
+            [session_id],
+            |row| row.get(0),
+        )?;
+        if total + bytes as i64 > 128 * 1024 * 1024 {
+            return Err(ApiError::Invalid(
+                "session audio exceeds the 128 MiB capture budget".to_owned(),
+            ));
+        }
         connection.execute(
             "INSERT INTO audio_chunks(session_id,sequence,sample_rate,channels,path,created_at) VALUES(?1,?2,?3,?4,?5,?6)",
             params![session_id, chunk.sequence, chunk.sample_rate, chunk.channels, chunk.path, now()],
         )?;
+        connection.execute(
+            "INSERT INTO audio_chunk_usage(session_id,sequence,bytes) VALUES(?1,?2,?3)",
+            params![session_id, chunk.sequence, bytes as i64],
+        )?;
+        transaction.commit()?;
         Ok(false)
     }
 
@@ -629,6 +804,27 @@ impl Store {
             params![session_id, agent_id],
         )?;
         Ok(())
+    }
+
+    pub fn completed_coach_feedback(
+        &self,
+        session_id: &str,
+    ) -> Result<Option<CoachFeedbackRecord>, ApiError> {
+        self.connection.lock().map_err(|_| ApiError::Internal)?.query_row(
+            "SELECT agent_id,coach_message,youtube_title,youtube_video_id,youtube_url FROM coach_feedback WHERE session_id=?1 AND status='completed'", [session_id],
+            |row| Ok(CoachFeedbackRecord {agent_id: row.get(0)?, coach_message: row.get(1)?, youtube_title: row.get(2)?, youtube_video_id: row.get(3)?, youtube_url: row.get(4)?}),
+        ).optional().map_err(Into::into)
+    }
+
+    pub fn session_annotation_items(
+        &self,
+        session_id: &str,
+    ) -> Result<Vec<AnnotationItem>, ApiError> {
+        let connection = self.connection.lock().map_err(|_| ApiError::Internal)?;
+        let mut statement = connection.prepare(
+            "SELECT id,session_id,expected_text,agora_text,buzz_text,sentence_start_ms,sentence_end_ms,focus_start_ms,focus_end_ms,clip_key,status FROM annotation_items WHERE session_id=?1 ORDER BY created_at,id",
+        )?;
+        collect_annotation_items(statement.query_map([session_id], read_annotation_item)?)
     }
 
     pub fn audio_chunks(&self, session_id: &str) -> Result<Vec<AudioChunk>, ApiError> {
@@ -788,6 +984,10 @@ fn now() -> i64 {
         .as_secs() as i64
 }
 
+pub fn unix_now() -> i64 {
+    now()
+}
+
 const SCHEMA: &str = r#"
 PRAGMA foreign_keys=ON;
 PRAGMA journal_mode=WAL;
@@ -796,11 +996,14 @@ CREATE TABLE IF NOT EXISTS auth_sessions(token_hash TEXT PRIMARY KEY,user_id TEX
 CREATE TABLE IF NOT EXISTS coaching_sessions(id TEXT PRIMARY KEY,learner_id TEXT NOT NULL REFERENCES users(id),exercise_id TEXT NOT NULL,expected_json TEXT NOT NULL,status TEXT NOT NULL,created_at INTEGER NOT NULL,updated_at INTEGER);
 CREATE TABLE IF NOT EXISTS session_consents(session_id TEXT PRIMARY KEY REFERENCES coaching_sessions(id),adult_consent INTEGER NOT NULL CHECK(adult_consent IN (0,1)),recorded_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS audio_chunks(session_id TEXT NOT NULL REFERENCES coaching_sessions(id),sequence INTEGER NOT NULL,sample_rate INTEGER NOT NULL,channels INTEGER NOT NULL,path TEXT NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(session_id,sequence));
+CREATE TABLE IF NOT EXISTS audio_chunk_usage(session_id TEXT NOT NULL REFERENCES coaching_sessions(id),sequence INTEGER NOT NULL,bytes INTEGER NOT NULL,PRIMARY KEY(session_id,sequence));
 CREATE TABLE IF NOT EXISTS transcript_events(session_id TEXT NOT NULL REFERENCES coaching_sessions(id),sequence INTEGER NOT NULL,text TEXT NOT NULL,start_ms INTEGER NOT NULL,end_ms INTEGER NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(session_id,sequence));
 CREATE TABLE IF NOT EXISTS inference_jobs(id TEXT PRIMARY KEY,session_id TEXT NOT NULL UNIQUE REFERENCES coaching_sessions(id),audio_path TEXT NOT NULL,audio_sha256 TEXT NOT NULL,audio_bytes INTEGER NOT NULL,sample_rate INTEGER NOT NULL,channels INTEGER NOT NULL,duration_ms INTEGER NOT NULL,model_id TEXT NOT NULL,model_revision TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('pending_manual_inference','exported','importing','completed','analysis_unavailable')),result_sha256 TEXT,created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,updated_at INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS inference_jobs_status_expiry_idx ON inference_jobs(status,expires_at);
 CREATE TABLE IF NOT EXISTS modal_inference_claims(job_id TEXT PRIMARY KEY REFERENCES inference_jobs(id) ON DELETE CASCADE,claimed_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS coach_feedback(session_id TEXT PRIMARY KEY REFERENCES coaching_sessions(id),agent_id TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('pending','completed')),coach_message TEXT,youtube_title TEXT,youtube_video_id TEXT,youtube_url TEXT,created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS coach_agents(session_id TEXT PRIMARY KEY REFERENCES coaching_sessions(id),agent_id TEXT UNIQUE,channel TEXT NOT NULL UNIQUE,agent_uid TEXT NOT NULL,client_uid TEXT NOT NULL,status TEXT NOT NULL,expires_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS session_transcriptions(session_id TEXT PRIMARY KEY REFERENCES coaching_sessions(id),result_json TEXT NOT NULL,created_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS annotation_items(id TEXT PRIMARY KEY,session_id TEXT NOT NULL REFERENCES coaching_sessions(id),expected_text TEXT NOT NULL,agora_text TEXT NOT NULL,buzz_text TEXT NOT NULL,sentence_start_ms INTEGER NOT NULL,sentence_end_ms INTEGER NOT NULL,focus_start_ms INTEGER NOT NULL,focus_end_ms INTEGER NOT NULL,clip_key TEXT NOT NULL,status TEXT NOT NULL,decision TEXT,corrected_text TEXT,notes TEXT,annotator_id TEXT REFERENCES users(id),reviewed_at INTEGER,created_at INTEGER NOT NULL);
 "#;
 
@@ -808,6 +1011,79 @@ CREATE TABLE IF NOT EXISTS annotation_items(id TEXT PRIMARY KEY,session_id TEXT 
 mod tests {
     use super::Store;
     use crate::error::ApiError;
+
+    #[test]
+    fn finalization_claims_are_atomic_and_restart_is_terminal_not_a_retry() {
+        let directory = tempfile::tempdir().unwrap();
+        let store =
+            std::sync::Arc::new(Store::open(&directory.path().join("coach.sqlite3")).unwrap());
+        store
+            .seed_local_user("learner@example.test", "password12345", "learner")
+            .unwrap();
+        let user = store
+            .find_local_user("learner@example.test")
+            .unwrap()
+            .unwrap();
+        let session = store
+            .create_coaching_session(&user.id, "exercise", &["Prompt".to_owned()], true)
+            .unwrap();
+        let threads: Vec<_> = (0..8)
+            .map(|_| {
+                let store = store.clone();
+                let id = session.id.clone();
+                std::thread::spawn(move || store.claim_session_finalization(&id).unwrap())
+            })
+            .collect();
+        assert_eq!(
+            threads
+                .into_iter()
+                .filter_map(|thread| thread.join().unwrap().then_some(1))
+                .sum::<u32>(),
+            1
+        );
+        store.recover_interrupted_work().unwrap();
+        assert_eq!(
+            store.coaching_session(&session.id).unwrap().unwrap().status,
+            "failed"
+        );
+        assert!(!store.claim_session_finalization(&session.id).unwrap());
+        store.recover_interrupted_work().unwrap();
+        assert_eq!(
+            store.coaching_session(&session.id).unwrap().unwrap().status,
+            "failed"
+        );
+    }
+
+    #[test]
+    fn capture_budget_and_closed_sessions_reject_new_chunks() {
+        use super::AudioChunk;
+        let directory = tempfile::tempdir().unwrap();
+        let store = Store::open(&directory.path().join("coach.sqlite3")).unwrap();
+        store
+            .seed_local_user("learner@example.test", "password12345", "learner")
+            .unwrap();
+        let user = store
+            .find_local_user("learner@example.test")
+            .unwrap()
+            .unwrap();
+        let session = store
+            .create_coaching_session(&user.id, "exercise", &["Prompt".to_owned()], true)
+            .unwrap();
+        let chunk = AudioChunk {
+            sequence: 0,
+            sample_rate: 16_000,
+            channels: 1,
+            path: "chunk.pcm".to_owned(),
+        };
+        assert!(
+            store
+                .add_audio_chunk_bounded(&session.id, &chunk, 128 * 1024 * 1024 + 1)
+                .is_err()
+        );
+        assert!(store.audio_chunks(&session.id).unwrap().is_empty());
+        store.claim_session_finalization(&session.id).unwrap();
+        assert!(store.add_audio_chunk(&session.id, &chunk).is_err());
+    }
 
     #[test]
     fn modal_claim_allows_only_one_active_execution() {

@@ -28,23 +28,20 @@ pub struct LoginLimiter {
 impl LoginLimiter {
     pub fn allow(&self, identity: &str) -> Result<(), ApiError> {
         let mut attempts = self.attempts.lock().map_err(|_| ApiError::Internal)?;
+        attempts.retain(|_, entries| {
+            entries.retain(|entry| entry.elapsed() < Duration::from_secs(60));
+            !entries.is_empty()
+        });
+        if attempts.len() >= 4096 && !attempts.contains_key(&identity.to_ascii_lowercase()) {
+            return Err(ApiError::Busy);
+        }
         let recent = attempts.entry(identity.to_ascii_lowercase()).or_default();
         recent.retain(|attempt| attempt.elapsed() < Duration::from_secs(60));
         if recent.len() >= 5 {
-            return Err(ApiError::Conflict(
-                "too many login attempts; retry after one minute".to_owned(),
-            ));
+            return Err(ApiError::RateLimited);
         }
+        recent.push(Instant::now());
         Ok(())
-    }
-
-    pub fn record_failure(&self, identity: &str) {
-        if let Ok(mut attempts) = self.attempts.lock() {
-            attempts
-                .entry(identity.to_ascii_lowercase())
-                .or_default()
-                .push(Instant::now());
-        }
     }
 
     pub fn clear(&self, identity: &str) {

@@ -36,6 +36,11 @@ docs/ · tests/ · scripts/ · data/
 | `api/model` | Timestamped inference data contract | Model loading, provider calls |
 | `api/comparison` | Deterministic candidate evidence | Pronunciation verdicts |
 | `api/coach_feedback` | Agora history retrieval and one-result YouTube discovery | Browser rendering, audio transcription |
+| `api/coach_session` | Owned agent lifecycle, grounded request, feedback/result orchestration | HTTP parsing, provider transport |
+| `api/coach_routes` | Authenticated coach HTTP interfaces | Provider calls |
+| `api/agora_agent` | Agora join/leave adapter | Session authorization |
+| `api/agora_tokens` + `api/adapters/agora-tokens` | Bounded official token issuance | Public signing secrets |
+| `api/inference_workflow` | Background preparation, Modal execution, transactional result import | DOM, provider retry |
 | `model/api` | Optional local gateway experiment | Canonical MVP orchestration |
 | `model/inference` | BuzzASR model loading and GPU inference only | Auth, annotation, persistence |
 | `model/modal` | Private Modal T4 lifecycle, bundle checks, pinned inference | Browser auth, persistence, pronunciation judgments |

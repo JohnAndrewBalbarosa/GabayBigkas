@@ -20,6 +20,7 @@ MODEL_CACHE_PATH = "/models"
 MAX_BUNDLE_BYTES = 14 * 1024 * 1024
 MAX_AUDIO_BYTES = 10 * 1024 * 1024
 WORKER_PATH = Path(__file__).resolve().parents[1] / "inference" / "buzzasr_gpu_worker.py"
+WINDOWS_PATH = WORKER_PATH.with_name("windowed_transcription.py")
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -39,6 +40,7 @@ image = (
         }
     )
     .add_local_file(WORKER_PATH, "/root/buzzasr_gpu_worker.py")
+    .add_local_file(WINDOWS_PATH, "/root/windowed_transcription.py")
 )
 model_volume = modal.Volume.from_name("gabaybigkas-buzzasr-models", create_if_missing=True)
 app = modal.App(APP_NAME)
@@ -158,16 +160,13 @@ def transcribe_bundle(
 ) -> dict[str, Any]:
     import torch
 
-    from buzzasr_gpu_worker import decode_wav, fit_inference_window, sentence_span, timed_words
+    from buzzasr_gpu_worker import decode_wav, sentence_span, timed_words
+    from windowed_transcription import transcribe_audio_windows
 
     encoded_audio = base64.b64encode(audio_wav).decode("ascii")
-    audio = fit_inference_window(decode_wav(encoded_audio))
+    audio = decode_wav(encoded_audio)
     with torch.inference_mode():
-        raw = transcriber(
-            audio,
-            return_timestamps="word",
-            generate_kwargs={"max_new_tokens": 128, "num_beams": 1, "do_sample": False},
-        )
+        raw = transcribe_audio_windows(transcriber, audio)
     torch.cuda.synchronize(device)
     text = str(raw.get("text", "")).strip()
     words = timed_words(raw.get("chunks", []))

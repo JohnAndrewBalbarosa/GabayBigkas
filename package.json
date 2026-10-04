@@ -15,7 +15,8 @@
     "test": "node --test tests/*.test.mjs",
     "test:e2e": "playwright test",
     "test:rust": "node scripts/rust-workspace.mjs test",
-    "verify": "npm run check && npm test && npm run test:rust && npm run test:e2e",
+    "test:python": "python -m unittest discover -s tests/python",
+    "verify": "npm run check && npm test && npm run test:rust && npm run test:python && npm run test:e2e",
     "contracts:refresh": "node scripts/import-contracts.mjs",
     "doctor": "node --env-file-if-exists=.env scripts/doctor.mjs",
     "package:event": "node scripts/package-event.mjs"

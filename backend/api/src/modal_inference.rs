@@ -22,6 +22,16 @@ struct ModalRequest {
 }
 
 impl ModalInferenceClient {
+    #[cfg(test)]
+    pub(crate) fn for_test(endpoint: String) -> Self {
+        Self {
+            client: Client::new(),
+            endpoint,
+            token_id: HeaderValue::from_static("test-id"),
+            token_secret: HeaderValue::from_static("test-secret"),
+        }
+    }
+
     pub fn from_config(config: &Config) -> Result<Option<Self>, String> {
         if !config.modal_enabled {
             return Ok(None);
@@ -41,7 +51,7 @@ impl ModalInferenceClient {
         token_id.set_sensitive(true);
         token_secret.set_sensitive(true);
         let client = Client::builder()
-            .redirect(Policy::limited(4))
+            .redirect(Policy::none())
             .timeout(Duration::from_secs(650))
             .build()
             .map_err(|_| "failed to initialize the Modal HTTP client".to_owned())?;
@@ -60,7 +70,7 @@ impl ModalInferenceClient {
     ) -> Result<ImportedInferenceResult, ApiError> {
         let started = Instant::now();
         tracing::info!(event = "modal.inference.started", job_id);
-        let response = self
+        let mut response = self
             .client
             .post(&self.endpoint)
             .header("Modal-Key", self.token_id.clone())
@@ -75,21 +85,26 @@ impl ModalInferenceClient {
                 ApiError::ModelUnavailable
             })?;
         let status = response.status();
-        let body = response
-            .bytes()
-            .await
-            .map_err(|_| ApiError::ModelUnavailable)?;
         if !status.is_success() {
             tracing::warn!(event = "modal.inference.rejected", job_id, status = %status);
             return Err(map_status(status));
         }
-        if body.len() > MAX_RESULT_BYTES {
-            tracing::warn!(
-                event = "modal.inference.result_oversized",
-                job_id,
-                bytes = body.len()
-            );
+        if response
+            .content_length()
+            .is_some_and(|length| length > MAX_RESULT_BYTES as u64)
+        {
             return Err(ApiError::ModelUnavailable);
+        }
+        let mut body = Vec::new();
+        while let Some(chunk) = response
+            .chunk()
+            .await
+            .map_err(|_| ApiError::ModelUnavailable)?
+        {
+            if body.len() + chunk.len() > MAX_RESULT_BYTES {
+                return Err(ApiError::ModelUnavailable);
+            }
+            body.extend_from_slice(&chunk);
         }
         let result = serde_json::from_slice(&body).map_err(|_| {
             tracing::warn!(event = "modal.inference.result_invalid", job_id);

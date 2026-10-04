@@ -4,9 +4,72 @@ use hound::{SampleFormat, WavReader, WavSpec, WavWriter};
 
 use crate::{error::ApiError, store::AudioChunk};
 
+pub fn persist_pcm_chunk(
+    directory: &Path,
+    sequence: i64,
+    sample_rate: u32,
+    channels: u16,
+    body: &[u8],
+) -> Result<AudioChunk, ApiError> {
+    use sha2::{Digest, Sha256};
+    use std::io::Write;
+
+    fs::create_dir_all(directory)?;
+    let hash = format!("{:x}", Sha256::digest(body));
+    let path = directory.join(format!("{sequence:08}-{sample_rate}-{channels}-{hash}.pcm"));
+    if !path.exists() {
+        let temporary = directory.join(format!("{}.partial", uuid::Uuid::new_v4()));
+        let outcome = (|| {
+            let mut file = fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&temporary)?;
+            file.write_all(body)?;
+            file.sync_all()?;
+            match fs::hard_link(&temporary, &path) {
+                Ok(()) => Ok(()),
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => Ok(()),
+                Err(error) => Err(error),
+            }
+        })();
+        let _ = fs::remove_file(&temporary);
+        outcome?;
+    }
+    if fs::read(&path)? != body {
+        return Err(ApiError::Conflict(
+            "stored PCM content is inconsistent".to_owned(),
+        ));
+    }
+    Ok(AudioChunk {
+        sequence,
+        sample_rate,
+        channels,
+        path: path.to_string_lossy().into_owned(),
+    })
+}
+
 pub const TARGET_SAMPLE_RATE: u32 = 16_000;
 const WINDOW_SECONDS: usize = 30;
 const OVERLAP_SECONDS: usize = 5;
+
+pub fn cleanup_capture_directory(root: &Path, session_id: &str) {
+    if uuid::Uuid::parse_str(session_id).is_err() {
+        return;
+    }
+    let Ok(root) = root.canonicalize() else {
+        return;
+    };
+    let chunks = root.join(session_id).join("chunks");
+    let Ok(target) = chunks.canonicalize() else {
+        return;
+    };
+    if !target.starts_with(&root) {
+        return;
+    }
+    if let Err(error) = fs::remove_dir_all(&target) {
+        tracing::warn!(event = "audio.capture_cleanup.failed", session_id, error = %error);
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct ProcessedAudio {
@@ -26,6 +89,14 @@ pub fn preprocess_session(chunks: &[AudioChunk]) -> Result<ProcessedAudio, ApiEr
     let sample_rate = chunks[0].sample_rate;
     let channels = chunks[0].channels;
     let mut interleaved = Vec::new();
+    let capture_bytes = chunks.iter().try_fold(0_u64, |total, chunk| {
+        fs::metadata(&chunk.path).map(|metadata| total.saturating_add(metadata.len()))
+    })?;
+    if capture_bytes > 128 * 1024 * 1024 {
+        return Err(ApiError::Invalid(
+            "session exceeds the capture budget".to_owned(),
+        ));
+    }
     for chunk in chunks {
         if chunk.sample_rate != sample_rate || chunk.channels != channels {
             return Err(ApiError::Invalid(
@@ -41,6 +112,11 @@ pub fn preprocess_session(chunks: &[AudioChunk]) -> Result<ProcessedAudio, ApiEr
         let (pairs, remainder) = bytes.as_chunks::<2>();
         debug_assert!(remainder.is_empty());
         interleaved.extend(pairs.iter().map(|pair| i16::from_le_bytes(*pair)));
+    }
+    if interleaved.len() > sample_rate as usize * channels as usize * 300 {
+        return Err(ApiError::Invalid(
+            "session exceeds the five-minute MVP limit".to_owned(),
+        ));
     }
     let mono = mix_to_mono(&interleaved, channels)?;
     let resampled = resample_linear(&mono, sample_rate, TARGET_SAMPLE_RATE);

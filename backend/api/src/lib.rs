@@ -1,15 +1,22 @@
+pub mod agora_agent;
+pub mod agora_tokens;
 pub mod audio;
 pub mod auth;
 pub mod coach_feedback;
+pub mod coach_routes;
+pub mod coach_session;
 pub mod comparison;
 pub mod config;
 pub mod error;
 pub mod inference_bundle;
+pub mod inference_workflow;
 pub mod modal_inference;
 pub mod model;
-pub mod poc_access;
 pub mod routes;
 pub mod store;
+
+#[cfg(test)]
+mod mvp_tests;
 
 use std::sync::Arc;
 
@@ -26,6 +33,8 @@ pub struct AppState {
     pub inference_bundles: InferenceBundleService,
     pub modal_inference: Option<ModalInferenceClient>,
     pub coach_feedback: Option<CoachFeedbackService>,
-    pub poc_access: poc_access::PocAccess,
+    pub agora_agent: Option<agora_agent::AgoraAgentClient>,
+    pub admission: Arc<tokio::sync::Semaphore>,
+    pub background: Arc<tokio::sync::Semaphore>,
     pub store: Arc<Store>,
 }

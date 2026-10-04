@@ -15,7 +15,7 @@ Ang transcript disagreement ay review signal lamang. Hindi ito automatic pronunc
 - Temporary full-session audio cleanup pagkatapos ng successful import o 24-hour bounded expiry.
 - Browser learner/annotator shell at independent PCM `AudioWorklet` recorder.
 - Private Modal T4 endpoint is the primary MVP GPU boundary. After finalize acknowledgment, Rust spawns a background task that claims one bounded inference bundle, sends it with server-held proxy credentials, and validates the returned result before import. No auto-retry.
-- The authenticated backend reads the latest completed Agora assistant message and performs one YouTube Data API search for the session's expected phrase. The frontend receives bounded coach-feedback JSON only.
+- The authenticated backend creates a session-owned Agora agent, mints bounded RTC/RTM credentials using the official token library, reads only the assistant reply after that session's transcript-grounded request, and performs one YouTube Data API search. BuzzASR is transcription-only. The frontend receives bounded coach-feedback JSON.
 - Manual Modal controls and interactive Colab transfer are deprecated and absent from the product HTTP contract.
 - Native Rust backend deployment contract para sa Lightsail. Zero-charge use requires account-specific active credit confirmation.
 - AWS GPU deployment and lifecycle scaling are post-MVP TODO documentation only.
@@ -56,7 +56,7 @@ Browser annotator → authorized metadata + private clip stream
 1. Rust owns product orchestration, auth, persistence, audio policy, and model supervision.
 2. Python owns model loading and inference only.
 3. Browser modules own capture and presentation; secrets never enter frontend bundles.
-4. Node owns only the existing Agora event lab.
+4. Rust owns product orchestration. Node owns the existing Agora lab and a bounded private adapter around the official Agora token library; it is not a second product HTTP server.
 5. Provider/model calls stay behind adapters.
 6. Logs contain IDs, states, durations, and bounded errors—never passwords, tokens, raw audio, or transcript bodies.
 7. Generated output belongs under `.artifacts/`.
@@ -75,6 +75,9 @@ POST /api/coaching/sessions/{id}/audio/chunks
 POST /api/coaching/sessions/{id}/agora-transcript-events
 POST /api/coaching/sessions/{id}/finalize
 POST /api/coaching/sessions/{id}/coach-feedback
+POST /api/coaching/sessions/{id}/agent
+POST /api/coaching/sessions/{id}/agent/stop
+GET  /api/coaching/sessions/{id}/result
 GET  /api/annotation/queue
 GET  /api/annotation/items/{id}
 GET  /api/annotation/items/{id}/audio
@@ -82,6 +85,10 @@ POST /api/annotation/items/{id}/decision
 ```
 
 Audio chunks require `X-Audio-Sequence`, `X-Sample-Rate`, at `X-Channels`; body is little-endian PCM16, maximum 2 MiB.
+
+Exact chunk duplicates return `{accepted:true,idempotent:true}`; a reused sequence with different content/format returns 409. Capture is bounded to 128 MiB and five minutes, with two background inference slots. Finalize atomically acknowledges `preprocessing` before audio preparation or provider work. Retries acknowledge the existing state, never create another inference job.
+
+`GET /result` returns `{session_id,status,transcription,coach_feedback,audio_items}` to the owning learner or annotator. `/agent` is learner-owned and requires `review_ready`; it returns short-lived client credentials and `coach_request`. The supported Agora request delivery is client RTM `sendText`, not a headless REST generation API. `/coach-feedback` accepts `{}` (optional `agent_id` must match the stored binding), reads the session-specific reply, persists the coach paragraph plus first YouTube result, and best-effort stops the agent. See `backend/api/README.md` for the exact handoff.
 
 Allowed annotation decisions: `confirmed_transcript`, `corrected_transcript`, `insufficient_evidence`, `out_of_scope_language`.
 
@@ -96,7 +103,9 @@ capturing → preprocessing → pending_manual_inference → exported → import
 failure: analysis_unavailable | failed
 ```
 
-Only the owning consenting-adult learner may append/finalize a capturing session or trigger private Modal inference for their job. Only annotators may export/import inference artifacts. Export bundles never contain learner identity, credentials, cookies, Agora secrets, or unrestricted transcripts.
+Only the owning consenting-adult learner may append/finalize a capturing session. Modal export/import is internal backend orchestration: no Colab fallback, manual import endpoint, or browser inference control. Export bundles never contain learner identity, credentials, cookies, Agora secrets, or unrestricted transcripts.
+
+Modal processes the full session in 30-second windows with five-second overlap and deterministic timestamp ownership. Imported transcription is persisted atomically with review items; a full-session review clip remains available even without Agora transcript events or disagreements. On restart, interrupted inference becomes explicit `analysis_unavailable`/`failed`; pending coach claims are released without replaying provider create calls. Raw capture expires after 24 hours; successful preprocessing removes chunks and successful import removes the processed WAV, retaining private review clips.
 
 ## Planned capacity and scheduling contract
 
@@ -172,7 +181,7 @@ npm run verify
 ## Safety boundaries
 
 - Modal Web Function MUST require proxy authentication, use one T4 container, and accept one claimed job per Rust request. The browser MUST NOT receive Modal credentials.
-- Rust MUST NOT automatically retry Modal inference. A failed claim is released for an explicit annotator retry.
+- Rust MUST NOT automatically retry Modal inference. Failure becomes an explicit terminal status; no browser or annotator retry endpoint is exposed.
 - Historical Colab experiments are not connected to the runtime and MUST NOT be exposed as a fallback, endpoint, worker, or operator control.
 - Lightsail hosts only the native Rust product backend; no GPU or Python model runtime.
 - No model output becomes a pronunciation verdict.

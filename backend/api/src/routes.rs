@@ -1,8 +1,4 @@
-use std::{
-    fs::{self, OpenOptions},
-    io::Write,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::fs;
 
 use axum::{
     Json, Router,
@@ -13,7 +9,6 @@ use axum::{
     routing::{get, post},
 };
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 use tower_http::{
     cors::CorsLayer, limit::RequestBodyLimitLayer, services::ServeDir, trace::TraceLayer,
 };
@@ -21,19 +16,13 @@ use uuid::Uuid;
 
 use crate::{
     AppState,
-    audio::{cleanup_session_files, preprocess_session, write_processed_wav},
     auth::{
         Principal, expired_session_cookie, hash_session_token, issue_session_token, session_cookie,
         session_token, verify_password,
     },
-    coach_feedback::YoutubeResource,
-    comparison::compare_session,
+    coach_routes::create_coach_feedback,
     error::ApiError,
-    inference_bundle::{ImportedInferenceResult, MODEL_ID, MODEL_REVISION},
-    store::{
-        AnnotationItem, AudioChunk, CoachFeedbackClaim, CoachFeedbackRecord, CoachingSession,
-        ImportStart, TranscriptEvent,
-    },
+    store::{AnnotationItem, CoachingSession, TranscriptEvent},
 };
 
 const MAX_CHUNK_BYTES: usize = 2 * 1024 * 1024;
@@ -63,6 +52,18 @@ pub fn router(state: AppState) -> Router {
             "/api/coaching/sessions/{id}/coach-feedback",
             post(create_coach_feedback),
         )
+        .route(
+            "/api/coaching/sessions/{id}/agent",
+            post(crate::coach_routes::start_agent),
+        )
+        .route(
+            "/api/coaching/sessions/{id}/agent/stop",
+            post(crate::coach_routes::stop_agent),
+        )
+        .route(
+            "/api/coaching/sessions/{id}/result",
+            get(crate::coach_routes::get_session_result),
+        )
         .route("/api/annotation/queue", get(annotation_queue))
         .route("/api/annotation/items/{id}", get(annotation_item))
         .route("/api/annotation/items/{id}/audio", get(annotation_audio))
@@ -76,6 +77,10 @@ pub fn router(state: AppState) -> Router {
         .layer(DefaultBodyLimit::disable())
         .layer(RequestBodyLimitLayer::new(MAX_CHUNK_BYTES))
         .layer(TraceLayer::new_for_http())
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            bounded_admission,
+        ))
         .with_state(state);
     match allowed_origin {
         Some(origin) => router.layer(production_cors(&origin)),
@@ -102,13 +107,32 @@ fn production_cors(origin: &str) -> CorsLayer {
 struct HealthResponse {
     status: &'static str,
     model_gateway: &'static str,
+    coach_feedback: bool,
+    agora_agent: bool,
 }
 
-async fn health() -> Json<HealthResponse> {
+async fn health(State(state): State<AppState>) -> Json<HealthResponse> {
     Json(HealthResponse {
         status: "ready",
-        model_gateway: "configured",
+        model_gateway: if state.modal_inference.is_some() {
+            "configured"
+        } else {
+            "disabled"
+        },
+        coach_feedback: state.coach_feedback.is_some(),
+        agora_agent: state.agora_agent.is_some(),
     })
+}
+
+async fn bounded_admission(
+    State(state): State<AppState>,
+    request: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> Response {
+    let Ok(_permit) = state.admission.clone().try_acquire_owned() else {
+        return ApiError::Busy.into_response();
+    };
+    next.run(request).await
 }
 
 #[derive(Deserialize)]
@@ -130,10 +154,16 @@ async fn login(
 ) -> Result<Response, ApiError> {
     ensure_allowed_origin(&headers, state.config.allowed_origin.as_deref())?;
     state.login_limiter.allow(&request.email)?;
+    if request.email.len() > 254 || request.password.len() > 1024 {
+        return Err(ApiError::Unauthorized);
+    }
     let user = state.store.find_local_user(&request.email)?;
-    let Some(user) = user.filter(|user| verify_password(&request.password, &user.password_hash))
-    else {
-        state.login_limiter.record_failure(&request.email);
+    let verified_user = tokio::task::spawn_blocking(move || {
+        user.filter(|user| verify_password(&request.password, &user.password_hash))
+    })
+    .await
+    .map_err(|_| ApiError::Internal)?;
+    let Some(user) = verified_user else {
         tracing::warn!(event = "authentication.login.rejected");
         return Err(ApiError::Unauthorized);
     };
@@ -259,10 +289,16 @@ async fn upload_audio_chunk(
     let sequence = required_integer_header(&headers, "x-audio-sequence")?;
     let sample_rate = required_integer_header(&headers, "x-sample-rate")?;
     let channels = required_integer_header(&headers, "x-channels")?;
-    if sequence < 0 || !(8_000..=96_000).contains(&sample_rate) || !(1..=2).contains(&channels) {
+    if !(0..2048).contains(&sequence)
+        || !(8_000..=96_000).contains(&sample_rate)
+        || !(1..=2).contains(&channels)
+    {
         return Err(ApiError::Invalid("invalid audio chunk metadata".to_owned()));
     }
-    if body.is_empty() || body.len() > MAX_CHUNK_BYTES || !body.len().is_multiple_of(2) {
+    if body.is_empty()
+        || body.len() > MAX_CHUNK_BYTES
+        || !body.len().is_multiple_of(2 * channels as usize)
+    {
         return Err(ApiError::Invalid("invalid PCM16 chunk body".to_owned()));
     }
     let chunk_dir = state
@@ -270,42 +306,22 @@ async fn upload_audio_chunk(
         .private_audio_root
         .join(&session.id)
         .join("chunks");
-    fs::create_dir_all(&chunk_dir)?;
-    let content_sha256 = format!("{:x}", Sha256::digest(&body));
-    let path = chunk_dir.join(format!("{sequence:08}-{content_sha256}.pcm"));
-    let created = match OpenOptions::new().write(true).create_new(true).open(&path) {
-        Ok(mut file) => {
-            file.write_all(&body)?;
-            true
-        }
-        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-            if fs::read(&path)? != body {
-                return Err(ApiError::Conflict(
-                    "audio chunk file does not match its content hash".to_owned(),
-                ));
-            }
-            false
-        }
-        Err(error) => return Err(error.into()),
-    };
-    let chunk = AudioChunk {
-        sequence,
-        sample_rate: sample_rate as u32,
-        channels: channels as u16,
-        path: path.to_string_lossy().into_owned(),
-    };
-    match state.store.add_audio_chunk(&id, &chunk) {
-        Ok(idempotent) => Ok(Json(ChunkAccepted {
-            accepted: true,
-            idempotent,
-        })),
-        Err(error) => {
-            if created {
-                let _ = fs::remove_file(&path);
-            }
-            Err(error)
-        }
-    }
+    let idempotent = tokio::task::spawn_blocking(move || {
+        let chunk = crate::audio::persist_pcm_chunk(
+            &chunk_dir,
+            sequence,
+            sample_rate as u32,
+            channels as u16,
+            &body,
+        )?;
+        state.store.add_audio_chunk_bounded(&id, &chunk, body.len())
+    })
+    .await
+    .map_err(|_| ApiError::Internal)??;
+    Ok(Json(ChunkAccepted {
+        accepted: true,
+        idempotent,
+    }))
 }
 
 async fn add_transcript_event(
@@ -343,510 +359,42 @@ async fn finalize_coaching_session(
     let principal = require_role(&state, &headers, "learner")?;
     let session = owned_session(&state, &id, &principal)?;
     if session.status != "capturing" {
-        if let Some(job_id) = session.inference_job_id {
-            return Ok(Json(FinalizeResponse {
-                session_id: id,
-                status: session.status,
-                acknowledged: true,
-                idempotent: true,
-                review_items: 0,
-                inference_job_id: Some(job_id),
-            }));
-        }
-        return Err(ApiError::Conflict(
-            "session finalization is in progress".to_owned(),
-        ));
+        return Ok(Json(FinalizeResponse {
+            session_id: id,
+            status: session.status,
+            acknowledged: true,
+            idempotent: true,
+            review_items: 0,
+            inference_job_id: session.inference_job_id,
+        }));
     }
     if !state.store.session_has_adult_consent(&id)? {
         return Err(ApiError::Forbidden);
     }
-    state.store.set_coaching_status(&id, "preprocessing")?;
-    let chunks = state.store.audio_chunks(&id)?;
-    let processed_path = state
-        .config
-        .private_audio_root
-        .join(&id)
-        .join("processed.wav");
-    let queued = (|| {
-        let audio = preprocess_session(&chunks)?;
-        write_processed_wav(&processed_path, &audio)?;
-        let (audio_sha256, audio_bytes) =
-            state
-                .inference_bundles
-                .describe_audio(&processed_path, audio.sample_rate, 1)?;
-        let duration_ms = audio.samples.len() as i64 * 1_000 / audio.sample_rate as i64;
-        state.store.create_inference_job(
-            &session.id,
-            &processed_path.to_string_lossy(),
-            &audio_sha256,
-            audio_bytes,
-            audio.sample_rate,
-            1,
-            duration_ms,
-            MODEL_ID,
-            MODEL_REVISION,
-        )
-    })();
-    let job = match queued {
-        Ok(job) => job,
-        Err(error) => {
-            cleanup_session_files(&chunks, &processed_path);
-            state.store.set_coaching_status(&id, "failed")?;
-            return Err(error);
-        }
-    };
-    cleanup_chunk_files(&chunks);
-    let job_id = job.id.clone();
-    tracing::info!(event = "inference.job.created", session_id = %id, job_id = %job_id);
-    if state.modal_inference.is_some() {
-        let bg_state = state.clone();
-        let bg_job_id = job_id.clone();
-        tokio::spawn(async move {
-            tracing::info!(event = "inference.background.started", job_id = %bg_job_id);
-            let client = match bg_state.modal_inference.clone() {
-                Some(c) => c,
-                None => return,
-            };
-            let job = match bg_state.store.claim_inference_job_for_modal(&bg_job_id) {
-                Ok(j) => j,
-                Err(error) => {
-                    tracing::warn!(event = "inference.background.claim_failed", job_id = %bg_job_id, error = %error);
-                    return;
-                }
-            };
-            let outcome = run_modal_inference_workflow(&bg_state, &client, &job).await;
-            if let Err(error) = bg_state.store.release_modal_inference_claim(&bg_job_id) {
-                tracing::error!(event = "inference.background.claim_release_failed", job_id = %bg_job_id, error = %error);
-            }
-            match outcome {
-                Ok(_) => {
-                    tracing::info!(event = "inference.background.completed", job_id = %bg_job_id)
-                }
-                Err(error) => {
-                    if let Err(status_error) = bg_state
-                        .store
-                        .mark_inference_analysis_unavailable(&bg_job_id)
-                    {
-                        tracing::error!(event = "inference.background.failure_status_failed", job_id = %bg_job_id, error = %status_error);
-                    } else if let Err(cleanup_error) = fs::remove_file(&job.audio_path)
-                        && cleanup_error.kind() != std::io::ErrorKind::NotFound
-                    {
-                        tracing::error!(event = "inference.background.audio_cleanup_failed", job_id = %bg_job_id, error = %cleanup_error);
-                    }
-                    tracing::warn!(event = "inference.background.failed", job_id = %bg_job_id, error = %error)
-                }
-            }
-        });
+    let permit = state
+        .background
+        .clone()
+        .try_acquire_owned()
+        .map_err(|_| ApiError::Busy)?;
+    if !state.store.claim_session_finalization(&id)? {
+        return Err(ApiError::Conflict(
+            "session finalization is already in progress".to_owned(),
+        ));
     }
+    let background_state = state.clone();
+    tokio::spawn(crate::inference_workflow::finish_session_in_background(
+        background_state,
+        session,
+        permit,
+    ));
     Ok(Json(FinalizeResponse {
         session_id: id,
-        status: "pending_manual_inference".to_owned(),
+        status: "preprocessing".to_owned(),
         acknowledged: true,
         idempotent: false,
         review_items: 0,
-        inference_job_id: Some(job_id),
+        inference_job_id: None,
     }))
-}
-
-#[derive(Deserialize)]
-struct CoachFeedbackRequest {
-    agent_id: String,
-}
-
-#[derive(Serialize)]
-struct CoachFeedbackResponse {
-    session_id: String,
-    status: &'static str,
-    coach_message: String,
-    words_to_practice: Vec<String>,
-    youtube_resources: Vec<YoutubeResource>,
-    idempotent: bool,
-}
-
-async fn create_coach_feedback(
-    State(state): State<AppState>,
-    headers: HeaderMap,
-    Path(id): Path<String>,
-    Json(request): Json<CoachFeedbackRequest>,
-) -> Result<Json<CoachFeedbackResponse>, ApiError> {
-    ensure_allowed_origin(&headers, state.config.allowed_origin.as_deref())?;
-    validate_id(&id)?;
-    let principal = require_role(&state, &headers, "learner")?;
-    let session = owned_session(&state, &id, &principal)?;
-    match state.store.claim_coach_feedback(&id, &request.agent_id)? {
-        CoachFeedbackClaim::Idempotent(record) => {
-            Ok(Json(coach_feedback_response(id, record, true)))
-        }
-        CoachFeedbackClaim::Generate => {
-            let service = match state.coach_feedback.as_ref() {
-                Some(service) => service,
-                None => {
-                    state
-                        .store
-                        .release_coach_feedback_claim(&id, &request.agent_id)?;
-                    return Err(ApiError::ModelUnavailable);
-                }
-            };
-            let generated = match service
-                .generate(&request.agent_id, &session.expected_phrases)
-                .await
-            {
-                Ok(generated) => generated,
-                Err(error) => {
-                    state
-                        .store
-                        .release_coach_feedback_claim(&id, &request.agent_id)?;
-                    return Err(error);
-                }
-            };
-            let record = state.store.complete_coach_feedback(
-                &id,
-                &request.agent_id,
-                &generated.coach_message,
-                &generated.youtube_resource.title,
-                &generated.youtube_resource.video_id,
-                &generated.youtube_resource.url,
-            )?;
-            tracing::info!(
-                event = "coach.feedback.completed",
-                session_id = %id,
-                agent_id = %request.agent_id
-            );
-            Ok(Json(coach_feedback_response(id, record, false)))
-        }
-    }
-}
-
-fn coach_feedback_response(
-    session_id: String,
-    record: CoachFeedbackRecord,
-    idempotent: bool,
-) -> CoachFeedbackResponse {
-    CoachFeedbackResponse {
-        session_id,
-        status: "ready",
-        coach_message: record.coach_message,
-        words_to_practice: Vec::new(),
-        youtube_resources: vec![YoutubeResource {
-            title: record.youtube_title,
-            video_id: record.youtube_video_id,
-            url: record.youtube_url,
-        }],
-        idempotent,
-    }
-}
-
-fn cleanup_chunk_files(chunks: &[AudioChunk]) {
-    for chunk in chunks {
-        if let Err(error) = fs::remove_file(&chunk.path) {
-            tracing::warn!(event = "audio.chunk_cleanup_failed", error = %error);
-        }
-    }
-}
-
-#[derive(Serialize)]
-#[allow(dead_code)]
-struct InferenceJobSummary {
-    id: String,
-    session_id: String,
-    status: String,
-    model_id: String,
-    model_revision: String,
-    created_at: i64,
-    expires_at: i64,
-}
-
-#[derive(Serialize)]
-#[allow(dead_code)]
-struct PocTicketResponse {
-    job_id: String,
-    token: String,
-    expires_at: i64,
-}
-
-#[allow(dead_code)]
-async fn issue_inference_poc_ticket(
-    State(state): State<AppState>,
-    headers: HeaderMap,
-    Path(id): Path<String>,
-) -> Result<Json<PocTicketResponse>, ApiError> {
-    ensure_allowed_origin(&headers, state.config.allowed_origin.as_deref())?;
-    require_role(&state, &headers, "annotator")?;
-    validate_id(&id)?;
-    let job = state.store.inference_job(&id)?.ok_or(ApiError::NotFound)?;
-    if !matches!(job.status.as_str(), "pending_manual_inference" | "exported") {
-        return Err(ApiError::Conflict(
-            "inference job is not available for Colab POC processing".to_owned(),
-        ));
-    }
-    let issued = state
-        .poc_access
-        .issue(&id, job.expires_at, unix_seconds())?;
-    tracing::info!(event = "inference.poc_ticket.issued", job_id = %id, expires_at = issued.expires_at);
-    Ok(Json(PocTicketResponse {
-        job_id: id,
-        token: issued.token,
-        expires_at: issued.expires_at,
-    }))
-}
-
-#[allow(dead_code)]
-async fn list_inference_jobs(
-    State(state): State<AppState>,
-    headers: HeaderMap,
-) -> Result<Json<Vec<InferenceJobSummary>>, ApiError> {
-    require_role(&state, &headers, "annotator")?;
-    let jobs = state
-        .store
-        .pending_inference_jobs()?
-        .into_iter()
-        .map(|job| InferenceJobSummary {
-            id: job.id,
-            session_id: job.session_id,
-            status: job.status,
-            model_id: job.model_id,
-            model_revision: job.model_revision,
-            created_at: job.created_at,
-            expires_at: job.expires_at,
-        })
-        .collect();
-    Ok(Json(jobs))
-}
-
-#[allow(dead_code)]
-async fn export_inference_job(
-    State(state): State<AppState>,
-    headers: HeaderMap,
-    Path(id): Path<String>,
-) -> Result<Response, ApiError> {
-    require_role(&state, &headers, "annotator")?;
-    export_inference_bundle(&state, id)
-}
-
-#[allow(dead_code)]
-async fn export_inference_job_with_poc_ticket(
-    State(state): State<AppState>,
-    headers: HeaderMap,
-    Path(id): Path<String>,
-) -> Result<Response, ApiError> {
-    let token = bearer_token(&headers)?;
-    state.poc_access.begin_export(&id, token, unix_seconds())?;
-    match export_inference_bundle(&state, id.clone()) {
-        Ok(response) => {
-            state.poc_access.finish_export(&id, token)?;
-            Ok(response)
-        }
-        Err(error) => {
-            state.poc_access.abort_export(&id, token);
-            Err(error)
-        }
-    }
-}
-
-#[allow(dead_code)]
-fn export_inference_bundle(state: &AppState, id: String) -> Result<Response, ApiError> {
-    validate_id(&id)?;
-    let job = state.store.inference_job(&id)?.ok_or(ApiError::NotFound)?;
-    if job.expires_at <= unix_seconds() || job.status == "analysis_unavailable" {
-        return Err(ApiError::Invalid("inference job has expired".to_owned()));
-    }
-    let bundle = state.inference_bundles.export_bundle(&job)?;
-    state.store.mark_inference_job_exported(&id)?;
-    tracing::info!(event = "inference.bundle.exported", job_id = %id, bytes = bundle.len());
-    let disposition =
-        HeaderValue::from_str(&format!("attachment; filename=\"gabaybigkas-{id}.zip\""))
-            .map_err(|_| ApiError::Internal)?;
-    let mut response = bundle.into_response();
-    response.headers_mut().insert(
-        header::CONTENT_TYPE,
-        HeaderValue::from_static("application/zip"),
-    );
-    response
-        .headers_mut()
-        .insert(header::CONTENT_DISPOSITION, disposition);
-    Ok(response)
-}
-
-#[derive(Serialize)]
-struct ImportResponse {
-    job_id: String,
-    status: &'static str,
-    review_items: usize,
-    idempotent: bool,
-}
-
-#[allow(dead_code)]
-async fn run_inference_job_on_modal(
-    State(state): State<AppState>,
-    headers: HeaderMap,
-    Path(id): Path<String>,
-) -> Result<Json<ImportResponse>, ApiError> {
-    ensure_allowed_origin(&headers, state.config.allowed_origin.as_deref())?;
-    validate_id(&id)?;
-    let principal = require_principal(&state, &headers)?;
-    if principal.role != "annotator" {
-        if principal.role != "learner" {
-            return Err(ApiError::Forbidden);
-        }
-        let job = state.store.inference_job(&id)?.ok_or(ApiError::NotFound)?;
-        let session = state
-            .store
-            .coaching_session(&job.session_id)?
-            .ok_or(ApiError::NotFound)?;
-        if session.learner_id != principal.user_id {
-            return Err(ApiError::Forbidden);
-        }
-    }
-    let client = state
-        .modal_inference
-        .clone()
-        .ok_or(ApiError::ModelUnavailable)?;
-    let job = state.store.claim_inference_job_for_modal(&id)?;
-    let outcome = run_modal_inference_workflow(&state, &client, &job).await;
-    if let Err(error) = state.store.release_modal_inference_claim(&id) {
-        tracing::error!(event = "modal.inference.claim_release_failed", job_id = %id, error = %error);
-    }
-    outcome
-}
-
-async fn run_modal_inference_workflow(
-    state: &AppState,
-    client: &crate::modal_inference::ModalInferenceClient,
-    job: &crate::store::InferenceJob,
-) -> Result<Json<ImportResponse>, ApiError> {
-    let bundle = state.inference_bundles.export_bundle(job)?;
-    let result = client.infer(&job.id, bundle).await?;
-    import_inference_result_for_job(state, job.id.clone(), result)
-}
-
-#[allow(dead_code)]
-async fn import_inference_result(
-    State(state): State<AppState>,
-    headers: HeaderMap,
-    Path(id): Path<String>,
-    Json(result): Json<ImportedInferenceResult>,
-) -> Result<Json<ImportResponse>, ApiError> {
-    ensure_allowed_origin(&headers, state.config.allowed_origin.as_deref())?;
-    require_role(&state, &headers, "annotator")?;
-    import_inference_result_for_job(&state, id, result)
-}
-
-#[allow(dead_code)]
-async fn import_inference_result_with_poc_ticket(
-    State(state): State<AppState>,
-    headers: HeaderMap,
-    Path(id): Path<String>,
-    Json(result): Json<ImportedInferenceResult>,
-) -> Result<Json<ImportResponse>, ApiError> {
-    let token = bearer_token(&headers)?;
-    state.poc_access.begin_import(&id, token, unix_seconds())?;
-    match import_inference_result_for_job(&state, id.clone(), result) {
-        Ok(response) => {
-            state.poc_access.finish_import(&id, token)?;
-            Ok(response)
-        }
-        Err(error) => {
-            state.poc_access.abort_import(&id, token);
-            Err(error)
-        }
-    }
-}
-
-#[allow(dead_code)]
-fn import_inference_result_for_job(
-    state: &AppState,
-    id: String,
-    result: ImportedInferenceResult,
-) -> Result<Json<ImportResponse>, ApiError> {
-    validate_id(&id)?;
-    let job = state.store.inference_job(&id)?.ok_or(ApiError::NotFound)?;
-    let result_sha256 = state
-        .inference_bundles
-        .validate_import(&job, &result, unix_seconds())?;
-    let started = state.store.begin_inference_import(&id, &result_sha256)?;
-    if matches!(started, ImportStart::Idempotent) {
-        return Ok(Json(ImportResponse {
-            job_id: id,
-            status: "review_ready",
-            review_items: 0,
-            idempotent: true,
-        }));
-    }
-    let ImportStart::Started(job) = started else {
-        unreachable!()
-    };
-    let imported = import_result_workflow(state, &job, &result_sha256, result);
-    match imported {
-        Ok(review_items) => {
-            state.inference_bundles.cleanup_audio(&job.audio_path);
-            tracing::info!(event = "inference.result.imported", job_id = %id, review_items);
-            Ok(Json(ImportResponse {
-                job_id: id,
-                status: "review_ready",
-                review_items,
-                idempotent: false,
-            }))
-        }
-        Err(error) => {
-            let _ = state.store.abort_inference_import(&id, &result_sha256);
-            tracing::warn!(event = "inference.result.rejected", job_id = %id, reason = %error);
-            Err(error)
-        }
-    }
-}
-
-fn import_result_workflow(
-    state: &AppState,
-    job: &crate::store::InferenceJob,
-    result_sha256: &str,
-    result: ImportedInferenceResult,
-) -> Result<usize, ApiError> {
-    let session = state
-        .store
-        .coaching_session(&job.session_id)?
-        .ok_or(ApiError::NotFound)?;
-    let audio = state
-        .inference_bundles
-        .load_processed_audio(&job.audio_path)?;
-    let buzz = crate::inference_bundle::InferenceBundleService::transcription(result);
-    let agora = state.store.transcript_events(&session.id)?;
-    let candidates = compare_session(&session.expected_phrases, &agora, &buzz);
-    let mut items = Vec::with_capacity(candidates.len());
-    for (index, candidate) in candidates.iter().enumerate() {
-        let item_id = format!("{}-{index}", job.id);
-        let clip_key = format!("{}/clips/{}.wav", session.id, item_id);
-        state.inference_bundles.write_review_clip(
-            &clip_key,
-            &audio,
-            candidate.sentence_start_ms,
-            candidate.sentence_end_ms,
-        )?;
-        items.push(AnnotationItem {
-            id: item_id,
-            session_id: session.id.clone(),
-            expected_text: candidate.expected_text.clone(),
-            agora_text: candidate.agora_text.clone(),
-            buzz_text: candidate.buzz_text.clone(),
-            sentence_start_ms: candidate.sentence_start_ms,
-            sentence_end_ms: candidate.sentence_end_ms,
-            focus_start_ms: candidate.focus_start_ms,
-            focus_end_ms: candidate.focus_end_ms,
-            clip_key,
-            status: "pending".to_owned(),
-        });
-    }
-    state
-        .store
-        .complete_inference_import(&job.id, result_sha256, &items)?;
-    Ok(items.len())
-}
-
-#[allow(dead_code)]
-fn unix_seconds() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs() as i64
 }
 
 async fn annotation_queue(
@@ -863,7 +411,7 @@ async fn annotation_item(
     Path(id): Path<String>,
 ) -> Result<Json<AnnotationItem>, ApiError> {
     require_role(&state, &headers, "annotator")?;
-    validate_id(&id)?;
+    validate_annotation_id(&id)?;
     Ok(Json(
         state
             .store
@@ -877,12 +425,15 @@ async fn annotation_audio(
     headers: HeaderMap,
     Path(id): Path<String>,
 ) -> Result<Response, ApiError> {
-    require_role(&state, &headers, "annotator")?;
-    validate_id(&id)?;
+    let principal = require_principal(&state, &headers)?;
+    validate_annotation_id(&id)?;
     let item = state
         .store
         .annotation_item(&id)?
         .ok_or(ApiError::NotFound)?;
+    if principal.role != "annotator" {
+        owned_session(&state, &item.session_id, &principal)?;
+    }
     let path = state.config.private_audio_root.join(item.clip_key);
     let body = fs::read(path).map_err(|error| {
         tracing::warn!(event = "annotation.audio.read_failed", annotation_id = %id, error = %error);
@@ -913,7 +464,7 @@ async fn decide_annotation(
 ) -> Result<StatusCode, ApiError> {
     ensure_allowed_origin(&headers, state.config.allowed_origin.as_deref())?;
     let principal = require_role(&state, &headers, "annotator")?;
-    validate_id(&id)?;
+    validate_annotation_id(&id)?;
     let allowed = [
         "confirmed_transcript",
         "corrected_transcript",
@@ -944,7 +495,10 @@ async fn decide_annotation(
     Ok(StatusCode::NO_CONTENT)
 }
 
-fn require_principal(state: &AppState, headers: &HeaderMap) -> Result<Principal, ApiError> {
+pub(crate) fn require_principal(
+    state: &AppState,
+    headers: &HeaderMap,
+) -> Result<Principal, ApiError> {
     let token = session_token(headers).ok_or(ApiError::Unauthorized)?;
     state
         .store
@@ -952,21 +506,16 @@ fn require_principal(state: &AppState, headers: &HeaderMap) -> Result<Principal,
         .ok_or(ApiError::Unauthorized)
 }
 
-fn require_role(state: &AppState, headers: &HeaderMap, role: &str) -> Result<Principal, ApiError> {
+pub(crate) fn require_role(
+    state: &AppState,
+    headers: &HeaderMap,
+    role: &str,
+) -> Result<Principal, ApiError> {
     let principal = require_principal(state, headers)?;
     if principal.role != role {
         return Err(ApiError::Forbidden);
     }
     Ok(principal)
-}
-
-fn bearer_token(headers: &HeaderMap) -> Result<&str, ApiError> {
-    headers
-        .get(header::AUTHORIZATION)
-        .and_then(|value| value.to_str().ok())
-        .and_then(|value| value.strip_prefix("Bearer "))
-        .filter(|token| !token.is_empty())
-        .ok_or(ApiError::Unauthorized)
 }
 
 fn owned_capturing_session(
@@ -983,7 +532,7 @@ fn owned_capturing_session(
     Ok(session)
 }
 
-fn owned_session(
+pub(crate) fn owned_session(
     state: &AppState,
     id: &str,
     principal: &Principal,
@@ -998,10 +547,21 @@ fn owned_session(
     Ok(session)
 }
 
-fn validate_id(id: &str) -> Result<(), ApiError> {
+pub(crate) fn validate_id(id: &str) -> Result<(), ApiError> {
     Uuid::parse_str(id)
         .map(|_| ())
         .map_err(|_| ApiError::Invalid("invalid resource id".to_owned()))
+}
+
+fn validate_annotation_id(id: &str) -> Result<(), ApiError> {
+    let (job_id, index) = id
+        .rsplit_once('-')
+        .ok_or_else(|| ApiError::Invalid("invalid annotation id".to_owned()))?;
+    validate_id(job_id)?;
+    if index.is_empty() || index.len() > 6 || !index.bytes().all(|byte| byte.is_ascii_digit()) {
+        return Err(ApiError::Invalid("invalid annotation index".to_owned()));
+    }
+    Ok(())
 }
 
 fn required_integer_header(headers: &HeaderMap, name: &str) -> Result<i64, ApiError> {
@@ -1012,18 +572,28 @@ fn required_integer_header(headers: &HeaderMap, name: &str) -> Result<i64, ApiEr
         .ok_or_else(|| ApiError::Invalid(format!("missing or invalid {name}")))
 }
 
-fn ensure_allowed_origin(
+pub(crate) fn ensure_allowed_origin(
     headers: &HeaderMap,
     allowed_origin: Option<&str>,
 ) -> Result<(), ApiError> {
     let Some(origin) = headers.get(header::ORIGIN) else {
-        return Ok(());
+        return if allowed_origin.is_some() {
+            Err(ApiError::Forbidden)
+        } else {
+            Ok(())
+        };
     };
     let origin = origin.to_str().map_err(|_| ApiError::Forbidden)?;
-    if origin.starts_with("http://127.0.0.1:")
-        || origin.starts_with("http://localhost:")
-        || allowed_origin.is_some_and(|allowed| origin == allowed)
-    {
+    let local_origin = reqwest::Url::parse(origin).is_ok_and(|url| {
+        url.scheme() == "http"
+            && matches!(url.host_str(), Some("127.0.0.1" | "localhost"))
+            && url.username().is_empty()
+            && url.password().is_none()
+            && url.path() == "/"
+            && url.query().is_none()
+            && url.fragment().is_none()
+    });
+    if allowed_origin.map_or(local_origin, |allowed| origin == allowed) {
         Ok(())
     } else {
         Err(ApiError::Forbidden)
@@ -1035,6 +605,30 @@ mod tests {
     use axum::http::{HeaderMap, HeaderValue, header};
 
     use super::ensure_allowed_origin;
+
+    #[test]
+    fn deployed_origin_requires_exact_origin_and_annotation_ids_accept_only_generated_suffixes() {
+        let mut headers = HeaderMap::new();
+        assert!(ensure_allowed_origin(&headers, Some("https://frontend.example.test")).is_err());
+        for origin in [
+            "http://localhost:4173",
+            "https://frontend.example.test.attacker.test",
+            "http://localhost.attacker.test:4173",
+        ] {
+            headers.insert(header::ORIGIN, HeaderValue::from_str(origin).unwrap());
+            assert!(
+                ensure_allowed_origin(&headers, Some("https://frontend.example.test")).is_err()
+            );
+        }
+        assert!(super::validate_annotation_id("8ed6a5c3-80da-4910-8e31-92c55c8fea44-0").is_ok());
+        for id in [
+            "../secret-0",
+            "8ed6a5c3-80da-4910-8e31-92c55c8fea44-x",
+            "8ed6a5c3-80da-4910-8e31-92c55c8fea44-1000000",
+        ] {
+            assert!(super::validate_annotation_id(id).is_err());
+        }
+    }
 
     #[test]
     fn origin_guard_allows_local_and_the_exact_configured_origin() {
