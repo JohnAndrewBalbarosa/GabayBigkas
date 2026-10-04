@@ -14,7 +14,7 @@ Ang transcript disagreement ay review signal lamang. Hindi ito automatic pronunc
 - Duration-preserving mono conversion, 16 kHz resampling, DC removal, bounded normalization, 30-second windows, at 5-second overlap.
 - Temporary full-session audio cleanup pagkatapos ng successful import o 24-hour bounded expiry.
 - Browser learner/annotator shell at independent PCM `AudioWorklet` recorder.
-- Private Modal T4 endpoint is the primary MVP GPU boundary. After finalize acknowledgment, Rust spawns a background task that claims one bounded inference bundle, sends it with server-held proxy credentials, and validates the returned result before import. No auto-retry.
+- Private Modal T4 endpoint is the primary MVP GPU boundary. Finalize persists a bounded FIFO entry; one Rust worker claims each session, builds one inference bundle, sends it with server-held proxy credentials, and validates the returned result before import. No auto-retry.
 - The authenticated backend creates a session-owned Agora agent, mints bounded RTC/RTM credentials using the official token library, reads only the assistant reply after that session's transcript-grounded request, and performs one YouTube Data API search. BuzzASR is transcription-only. The frontend receives bounded coach-feedback JSON.
 - Manual Modal controls and interactive Colab transfer are deprecated and absent from the product HTTP contract.
 - Native Rust backend deployment contract para sa Lightsail. Zero-charge use requires account-specific active credit confirmation.
@@ -43,7 +43,7 @@ Agora timestamped transcript events → Rust API
 Rust API
   ├─ auth + roles + SQLite
   ├─ private audio preprocessing
-  ├─ finalize → immediate acknowledgment → background Modal T4 inference
+  ├─ finalize → durable FIFO acknowledgment → one-at-a-time Modal T4 inference
   ├─ Agora agent history → latest AI coach response
   ├─ backend YouTube search → first embeddable practice video
   └─ comparison → sentence clips → annotation queue
@@ -86,7 +86,7 @@ POST /api/annotation/items/{id}/decision
 
 Audio chunks require `X-Audio-Sequence`, `X-Sample-Rate`, at `X-Channels`; body is little-endian PCM16, maximum 2 MiB.
 
-Exact chunk duplicates return `{accepted:true,idempotent:true}`; a reused sequence with different content/format returns 409. Capture is bounded to 128 MiB and five minutes, with two background inference slots. Finalize atomically acknowledges `preprocessing` before audio preparation or provider work. Retries acknowledge the existing state, never create another inference job.
+Exact chunk duplicates return `{accepted:true,idempotent:true}`; a reused sequence with different content/format returns 409. Capture is bounded to 128 MiB and five minutes. Finalize atomically appends to a durable 16-item SQLite FIFO and acknowledges `queued` before audio preparation or provider work. One worker claims sessions in enqueue order and runs one Modal request at a time. Retries acknowledge the existing state, never create another inference job.
 
 `GET /result` returns `{session_id,status,transcription,practice_words,coach_feedback,audio_items}` to the owning learner or annotator. `/agent` is learner-owned and requires `review_ready`; it returns short-lived client credentials and `coach_request`. The browser renders `practice_words`, waits for the owned agent's RTC `user-joined` event, then delivers the request through client RTM `sendText`; this keeps spoken TTS behind visible word evidence. `/coach-feedback` accepts `{}` (optional `agent_id` must match the stored binding), reads the session-specific reply, persists the coach paragraph plus first YouTube result, and best-effort stops the agent. An explicit retry may replace only a terminal agent binding. See `backend/api/README.md` for the exact handoff.
 
@@ -99,21 +99,21 @@ Ang export ZIP ay eksaktong `manifest.json` at `audio.wav`. Kasama lamang sa man
 ## Lifecycle
 
 ```text
-capturing → preprocessing → pending_manual_inference → exported → importing → review_ready
+capturing → queued → preprocessing → pending_manual_inference → exported → importing → review_ready
 failure: analysis_unavailable | failed
 ```
 
 Only the owning consenting-adult learner may append/finalize a capturing session. Modal export/import is internal backend orchestration: no Colab fallback, manual import endpoint, or browser inference control. Export bundles never contain learner identity, credentials, cookies, Agora secrets, or unrestricted transcripts.
 
-Modal processes the full session in 30-second windows with five-second overlap and deterministic timestamp ownership. Imported transcription is persisted atomically with review items; a full-session review clip remains available even without Agora transcript events or disagreements. On restart, interrupted inference becomes explicit `analysis_unavailable`/`failed`; pending coach claims are released without replaying provider create calls. Raw capture expires after 24 hours; successful preprocessing removes chunks and successful import removes the processed WAV, retaining private review clips.
+Modal processes the full session in 30-second windows with five-second overlap and deterministic timestamp ownership. Imported transcription is persisted atomically with review items; a full-session review clip remains available even without Agora transcript events or disagreements. On restart, unclaimed queued work remains FIFO-eligible, while already-processing inference becomes explicit `analysis_unavailable`/`failed` rather than replaying a paid provider call. Pending coach claims are released without replaying provider create calls. Raw capture expires after 24 hours; successful preprocessing removes chunks and successful import removes the processed WAV, retaining private review clips.
 
-## Planned capacity and scheduling contract
+## Capacity and scheduling contract
 
-Status: design target only; not yet implemented or benchmarked.
+Status: bounded FIFO admission and durable inference FIFO are implemented but not yet benchmarked on the target VPS. Hierarchical rate limits and measured capacity budgets remain planned.
 
 ### Two-vCPU execution model
 
-- Tokio MUST use a two-worker multi-thread runtime on the target two-vCPU VPS. Both workers remain eligible for all asynchronous work; Tokio work stealing redistributes ready tasks when one worker becomes idle.
+- Tokio uses a two-worker multi-thread runtime on the target two-vCPU VPS. Both workers remain eligible for all asynchronous work; Tokio work stealing redistributes ready tasks when one worker becomes idle.
 - CPU affinity MUST NOT permanently reserve one vCPU for reads/auth and one for writes. The application instead reserves admission capacity for latency-sensitive work so idle capacity remains shareable.
 - `express` work includes health, authenticated session lookup, authorization checks, and bounded non-stale reads.
 - `durable` work includes metadata writes, audio-chunk persistence, finalize requests, and model-job state transitions.
@@ -123,17 +123,21 @@ Status: design target only; not yet implemented or benchmarked.
 
 ```text
 HTTP request
-  → layered rate limits
-  → route cost classification
-  → bounded admission permits
-  → priority queue with aging/deadline
+  → route lane classification
+  → bounded accepted-request permit
+  → fair FIFO active permit with two-second deadline
   → shared Tokio workers
-  → bounded blocking/database/model resources
+
+finalize
+  → durable 16-item SQLite FIFO
+  → one inference worker
+  → private Modal T4
 ```
 
-- A `BinaryHeap` MAY order lightweight job descriptors by effective priority. Priority MUST include aging or deadlines so sustained express traffic cannot starve durable work.
-- Every queue MUST have a hard item limit, byte budget, enqueue deadline, and explicit overload response. Unbounded channels are forbidden.
-- Heap ordering is not a memory optimization by itself. Large audio/request payloads MUST be persisted immediately to private storage; queued records retain only IDs, paths, size, deadline, cost, and trace metadata.
+- HTTP lanes are auth (`2 active / 16 accepted`), writes (`1 / 16`), ordinary reads (`4 / 32`), and polling reads (`1 / 8`). Tokio semaphores release permits fairly in waiter order within each lane.
+- Result and annotation-queue polling use the polling-read lane. The name does not imply cached or stale response data; each admitted request still reads current persisted state.
+- Accepted HTTP waiters remain in memory for at most two seconds. Durable inference stores only the session reference and queue sequence in SQLite; audio remains in private storage.
+- A `BinaryHeap` is not part of the runtime. Cross-lane priority, borrowing, hierarchical token buckets, and measured per-lane budgets remain future work.
 - “Swapping” means application-controlled spill-to-disk or durable job persistence. OS swap is only a last-resort host safety net and MUST NOT be presented as the queue or RAM strategy.
 - When memory, queue, concurrency, or deadline limits are exhausted, the API MUST apply backpressure or return bounded `429`/`503` responses with `Retry-After`; it MUST NOT accept work it cannot retain safely.
 

@@ -103,6 +103,14 @@ pub enum ImportStart {
     Idempotent,
 }
 
+#[derive(Debug, Eq, PartialEq)]
+pub enum FinalizationEnqueue {
+    Enqueued,
+    Existing,
+}
+
+pub const INFERENCE_QUEUE_CAPACITY: i64 = 16;
+
 #[derive(Clone, Debug, Serialize)]
 pub struct AnnotationItem {
     pub id: String,
@@ -267,12 +275,89 @@ impl Store {
         Ok(())
     }
 
-    pub fn claim_session_finalization(&self, id: &str) -> Result<bool, ApiError> {
-        let changed = self.connection.lock().map_err(|_| ApiError::Internal)?.execute(
-            "UPDATE coaching_sessions SET status='preprocessing',updated_at=?2 WHERE id=?1 AND status='capturing'",
-            params![id, now()],
+    pub fn enqueue_session_finalization(&self, id: &str) -> Result<FinalizationEnqueue, ApiError> {
+        let mut connection = self.connection.lock().map_err(|_| ApiError::Internal)?;
+        let transaction = connection.transaction()?;
+        let status = transaction
+            .query_row(
+                "SELECT status FROM coaching_sessions WHERE id=?1",
+                [id],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?
+            .ok_or(ApiError::NotFound)?;
+        if status != "capturing" {
+            return Ok(FinalizationEnqueue::Existing);
+        }
+        let queued: i64 = transaction.query_row(
+            "SELECT COUNT(*) FROM inference_queue WHERE status IN ('queued','processing')",
+            [],
+            |row| row.get(0),
         )?;
-        Ok(changed == 1)
+        if queued >= INFERENCE_QUEUE_CAPACITY {
+            return Err(ApiError::Busy);
+        }
+        let current = now();
+        transaction.execute(
+            "INSERT INTO inference_queue(session_id,status,enqueued_at) VALUES(?1,'queued',?2)",
+            params![id, current],
+        )?;
+        transaction.execute(
+            "UPDATE coaching_sessions SET status='queued',updated_at=?2 WHERE id=?1",
+            params![id, current],
+        )?;
+        transaction.commit()?;
+        Ok(FinalizationEnqueue::Enqueued)
+    }
+
+    pub fn claim_next_session_finalization(&self) -> Result<Option<CoachingSession>, ApiError> {
+        let mut connection = self.connection.lock().map_err(|_| ApiError::Internal)?;
+        let transaction = connection.transaction()?;
+        let queued = transaction
+            .query_row(
+                "SELECT q.sequence,s.id,s.learner_id,s.exercise_id,s.expected_json FROM inference_queue q JOIN coaching_sessions s ON s.id=q.session_id WHERE q.status='queued' ORDER BY q.sequence LIMIT 1",
+                [],
+                |row| {
+                    Ok((
+                        row.get::<_, i64>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, String>(3)?,
+                        row.get::<_, String>(4)?,
+                    ))
+                },
+            )
+            .optional()?;
+        let Some((sequence, id, learner_id, exercise_id, expected_json)) = queued else {
+            return Ok(None);
+        };
+        let current = now();
+        transaction.execute(
+            "UPDATE inference_queue SET status='processing',started_at=?2 WHERE sequence=?1 AND status='queued'",
+            params![sequence, current],
+        )?;
+        transaction.execute(
+            "UPDATE coaching_sessions SET status='preprocessing',updated_at=?2 WHERE id=?1",
+            params![id, current],
+        )?;
+        transaction.commit()?;
+        Ok(Some(CoachingSession {
+            id,
+            learner_id,
+            exercise_id,
+            expected_phrases: serde_json::from_str(&expected_json).unwrap_or_default(),
+            status: "preprocessing".to_owned(),
+            inference_job_id: None,
+            analysis_expires_at: None,
+        }))
+    }
+
+    pub fn complete_session_finalization(&self, id: &str) -> Result<(), ApiError> {
+        self.connection
+            .lock()
+            .map_err(|_| ApiError::Internal)?
+            .execute("DELETE FROM inference_queue WHERE session_id=?1", [id])?;
+        Ok(())
     }
 
     pub fn recover_interrupted_work(&self) -> Result<Vec<String>, ApiError> {
@@ -295,6 +380,7 @@ impl Store {
             [now()],
         )?;
         transaction.execute("UPDATE coaching_sessions SET status='failed',updated_at=?1 WHERE status='preprocessing'", [now()])?;
+        transaction.execute("DELETE FROM inference_queue WHERE status='processing'", [])?;
         transaction.execute("DELETE FROM modal_inference_claims", [])?;
         transaction.execute("DELETE FROM coach_feedback WHERE status='pending'", [])?;
         transaction.execute(
@@ -309,12 +395,13 @@ impl Store {
         let mut connection = self.connection.lock().map_err(|_| ApiError::Internal)?;
         let transaction = connection.transaction()?;
         let ids = {
-            let mut statement = transaction.prepare("SELECT id FROM coaching_sessions WHERE (status='capturing' AND updated_at<=?1) OR status IN ('failed','analysis_unavailable')")?;
+            let mut statement = transaction.prepare("SELECT id FROM coaching_sessions WHERE (status IN ('capturing','queued') AND updated_at<=?1) OR status IN ('failed','analysis_unavailable')")?;
             statement
                 .query_map([now() - 86_400], |row| row.get::<_, String>(0))?
                 .collect::<Result<Vec<_>, _>>()?
         };
-        transaction.execute("UPDATE coaching_sessions SET status='failed',updated_at=?1 WHERE status='capturing' AND updated_at<=?2", params![now(), now() - 86_400])?;
+        transaction.execute("UPDATE coaching_sessions SET status='failed',updated_at=?1 WHERE status IN ('capturing','queued') AND updated_at<=?2", params![now(), now() - 86_400])?;
+        transaction.execute("DELETE FROM inference_queue WHERE session_id IN (SELECT id FROM coaching_sessions WHERE status IN ('failed','analysis_unavailable'))", [])?;
         transaction.commit()?;
         Ok(ids)
     }
@@ -1020,6 +1107,8 @@ CREATE TABLE IF NOT EXISTS session_consents(session_id TEXT PRIMARY KEY REFERENC
 CREATE TABLE IF NOT EXISTS audio_chunks(session_id TEXT NOT NULL REFERENCES coaching_sessions(id),sequence INTEGER NOT NULL,sample_rate INTEGER NOT NULL,channels INTEGER NOT NULL,path TEXT NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(session_id,sequence));
 CREATE TABLE IF NOT EXISTS audio_chunk_usage(session_id TEXT NOT NULL REFERENCES coaching_sessions(id),sequence INTEGER NOT NULL,bytes INTEGER NOT NULL,PRIMARY KEY(session_id,sequence));
 CREATE TABLE IF NOT EXISTS transcript_events(session_id TEXT NOT NULL REFERENCES coaching_sessions(id),sequence INTEGER NOT NULL,text TEXT NOT NULL,start_ms INTEGER NOT NULL,end_ms INTEGER NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(session_id,sequence));
+CREATE TABLE IF NOT EXISTS inference_queue(sequence INTEGER PRIMARY KEY AUTOINCREMENT,session_id TEXT NOT NULL UNIQUE REFERENCES coaching_sessions(id),status TEXT NOT NULL CHECK(status IN ('queued','processing')),enqueued_at INTEGER NOT NULL,started_at INTEGER);
+CREATE INDEX IF NOT EXISTS inference_queue_status_sequence_idx ON inference_queue(status,sequence);
 CREATE TABLE IF NOT EXISTS inference_jobs(id TEXT PRIMARY KEY,session_id TEXT NOT NULL UNIQUE REFERENCES coaching_sessions(id),audio_path TEXT NOT NULL,audio_sha256 TEXT NOT NULL,audio_bytes INTEGER NOT NULL,sample_rate INTEGER NOT NULL,channels INTEGER NOT NULL,duration_ms INTEGER NOT NULL,model_id TEXT NOT NULL,model_revision TEXT NOT NULL,status TEXT NOT NULL CHECK(status IN ('pending_manual_inference','exported','importing','completed','analysis_unavailable')),result_sha256 TEXT,created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,updated_at INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS inference_jobs_status_expiry_idx ON inference_jobs(status,expires_at);
 CREATE TABLE IF NOT EXISTS modal_inference_claims(job_id TEXT PRIMARY KEY REFERENCES inference_jobs(id) ON DELETE CASCADE,claimed_at INTEGER NOT NULL);
@@ -1031,11 +1120,11 @@ CREATE TABLE IF NOT EXISTS annotation_items(id TEXT PRIMARY KEY,session_id TEXT 
 
 #[cfg(test)]
 mod tests {
-    use super::Store;
+    use super::{FinalizationEnqueue, INFERENCE_QUEUE_CAPACITY, Store};
     use crate::error::ApiError;
 
     #[test]
-    fn finalization_claims_are_atomic_and_restart_is_terminal_not_a_retry() {
+    fn finalization_queue_is_atomic_and_only_processing_work_becomes_terminal_on_restart() {
         let directory = tempfile::tempdir().unwrap();
         let store =
             std::sync::Arc::new(Store::open(&directory.path().join("coach.sqlite3")).unwrap());
@@ -1053,26 +1142,34 @@ mod tests {
             .map(|_| {
                 let store = store.clone();
                 let id = session.id.clone();
-                std::thread::spawn(move || store.claim_session_finalization(&id).unwrap())
+                std::thread::spawn(move || store.enqueue_session_finalization(&id).unwrap())
             })
             .collect();
         assert_eq!(
             threads
                 .into_iter()
-                .filter_map(|thread| thread.join().unwrap().then_some(1))
-                .sum::<u32>(),
+                .map(|thread| thread.join().unwrap())
+                .filter(|outcome| *outcome == FinalizationEnqueue::Enqueued)
+                .count(),
             1
         );
         store.recover_interrupted_work().unwrap();
         assert_eq!(
             store.coaching_session(&session.id).unwrap().unwrap().status,
-            "failed"
+            "queued"
         );
-        assert!(!store.claim_session_finalization(&session.id).unwrap());
+        assert_eq!(
+            store.claim_next_session_finalization().unwrap().unwrap().id,
+            session.id
+        );
         store.recover_interrupted_work().unwrap();
         assert_eq!(
             store.coaching_session(&session.id).unwrap().unwrap().status,
             "failed"
+        );
+        assert_eq!(
+            store.enqueue_session_finalization(&session.id).unwrap(),
+            FinalizationEnqueue::Existing
         );
     }
 
@@ -1103,8 +1200,45 @@ mod tests {
                 .is_err()
         );
         assert!(store.audio_chunks(&session.id).unwrap().is_empty());
-        store.claim_session_finalization(&session.id).unwrap();
+        store.enqueue_session_finalization(&session.id).unwrap();
         assert!(store.add_audio_chunk(&session.id, &chunk).is_err());
+    }
+
+    #[test]
+    fn finalization_queue_is_fifo_and_rejects_work_beyond_its_capacity() {
+        let directory = tempfile::tempdir().unwrap();
+        let store = Store::open(&directory.path().join("coach.sqlite3")).unwrap();
+        store
+            .seed_local_user("learner@example.test", "password12345", "learner")
+            .unwrap();
+        let learner = store
+            .find_local_user("learner@example.test")
+            .unwrap()
+            .unwrap();
+        let mut ids = Vec::new();
+        for index in 0..INFERENCE_QUEUE_CAPACITY {
+            let session = store
+                .create_coaching_session(
+                    &learner.id,
+                    &format!("exercise-{index}"),
+                    &["Prompt".to_owned()],
+                    true,
+                )
+                .unwrap();
+            store.enqueue_session_finalization(&session.id).unwrap();
+            ids.push(session.id);
+        }
+        let overflow = store
+            .create_coaching_session(&learner.id, "overflow", &["Prompt".to_owned()], true)
+            .unwrap();
+        assert!(matches!(
+            store.enqueue_session_finalization(&overflow.id),
+            Err(ApiError::Busy)
+        ));
+        assert_eq!(
+            store.claim_next_session_finalization().unwrap().unwrap().id,
+            ids[0]
+        );
     }
 
     #[test]

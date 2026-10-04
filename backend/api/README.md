@@ -14,7 +14,7 @@ Default bind: `127.0.0.1:4320`. Runtime state stays under `.artifacts/` unless e
 ## Frontend handoff
 
 1. Capture consented PCM; exact duplicate chunks are acknowledged, conflicting duplicates are rejected.
-2. `POST /api/coaching/sessions/{id}/finalize`: immediate `{acknowledged:true,status:"preprocessing"}`. No inference job ID is required to poll.
+2. `POST /api/coaching/sessions/{id}/finalize`: atomically appends to the durable 16-item SQLite FIFO and immediately returns `{acknowledged:true,status:"queued"}`. One worker claims jobs in enqueue order and runs at most one Modal T4 request at a time. No inference job ID is required to poll.
 3. Poll authenticated `GET /api/coaching/sessions/{id}/result` until `review_ready`, `failed`, or `analysis_unavailable`. Render `transcription.text`; audio URLs are `/api/annotation/items/{audio_items[n].id}/audio` using the session cookie.
 4. `POST /api/coaching/sessions/{id}/agent`: returns `{app_id,agent_id,agent_uid,client_uid,channel,rtc_token,rtm_token,expires_at,coach_request,delivery:"client_rtm_send_text"}`. Only client tokens leave the backend; App Certificate and agent/server tokens never do.
 5. `GET /result` exposes bounded `practice_words` as soon as transcription is ready. The learner renders those words before connecting the private coach. It then uses `agora-rtc-sdk-ng@4.24.8`, `agora-rtm@2.3.0`, and `agora-agent-client-toolkit@2.9.1`, joins RTC with `Number(client_uid)` without publishing another microphone, and waits for the owned agent's `user-joined` event before sending. It subscribes only to that agent's audio, logs in to RTM with the matching `client_uid` and `rtm_token`, subscribes before sending, and sends the exact `coach_request` to `agent_uid` through toolkit `sendText`. Agora TTS therefore starts only after the word review is visible; it is streamed once, is not stored as a replayable recording, and may incur provider charges.
@@ -26,6 +26,8 @@ Agora `/history` retrieves conversations; `/speak` synthesizes speech. Neither i
 
 ## Recovery and verification
 
-SQLite changes are additive (`CREATE TABLE IF NOT EXISTS`). Back up the SQLite database and private review clips before deploying a new binary; rollback restores the prior binary and its matching backup. Interrupted jobs are marked terminal on startup instead of silently replaying a paid inference. Uploads are bounded; blocking audio/password work runs outside Tokio workers.
+SQLite changes are additive (`CREATE TABLE IF NOT EXISTS`). Back up the SQLite database and private review clips before deploying a new binary; rollback restores the prior binary and its matching backup. Queued inference survives restart; a job already claimed for processing becomes terminal instead of silently replaying a paid inference. Uploads are bounded; blocking audio/password work runs outside Tokio workers.
+
+HTTP admission uses independent fair FIFO semaphores: auth `2 active / 16 accepted`, writes `1 / 16`, ordinary reads `4 / 32`, and polling reads `1 / 8`. Accepted requests wait at most two seconds for an active permit. Saturated or expired admission returns `503 busy` with `Retry-After: 1`; waiting is bounded and never becomes an unbounded in-memory queue. The polling lane covers result and annotation-queue reads and does not serve cached or stale data.
 
 `npm run verify` includes static checks, Node tests, Rust tests (backend HTTP flow with local Modal mock; Agora-history/YouTube mocks), Python full-session window tests, and browser E2E. Mock success does not prove live Modal, Agora managed-provider billing/configuration, RTM delivery, or YouTube quota. Live MVP sign-off requires one consented recording through those real boundaries and successful private playback + coach paragraph + YouTube link.

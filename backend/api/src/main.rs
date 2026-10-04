@@ -7,14 +7,16 @@ use agora_coach_api::{
     coach_feedback::CoachFeedbackService,
     config::Config,
     inference_bundle::{InferenceBundleService, run_expired_job_cleanup},
+    inference_workflow::run_inference_queue,
     modal_inference::ModalInferenceClient,
+    request_admission::RequestAdmission,
     routes,
     store::Store,
 };
 use tokio::net::TcpListener;
 use tracing_subscriber::EnvFilter;
 
-#[tokio::main]
+#[tokio::main(worker_threads = 2)]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt()
         .json()
@@ -43,11 +45,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         modal_inference,
         coach_feedback,
         agora_agent: AgoraAgentClient::from_config(&config).map_err(std::io::Error::other)?,
-        admission: Arc::new(tokio::sync::Semaphore::new(8)),
-        background: Arc::new(tokio::sync::Semaphore::new(2)),
+        request_admission: RequestAdmission::bounded_default(),
+        inference_ready: Arc::new(tokio::sync::Notify::new()),
         store: store.clone(),
         config: config.clone(),
     };
+    tokio::spawn(run_inference_queue(state.clone()));
     tokio::spawn(run_expired_job_cleanup(store.clone(), inference_bundles));
     let listener = TcpListener::bind(&config.bind).await?;
     tracing::info!(event = "coach.api.ready", bind = %config.bind);

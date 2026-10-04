@@ -29,6 +29,7 @@ docs/ · tests/ · scripts/ · data/
 | Module | Owns | Must not own |
 | --- | --- | --- |
 | `api/routes` | HTTP parsing, auth invocation, response mapping | Password algorithms, CUDA |
+| `api/request_admission` | Bounded fair FIFO lanes for auth, writes, reads, and polling reads | Durable inference state, provider calls |
 | `api/auth` | Argon2, session tokens/cookies, login throttling | SQLite schema, audio |
 | `api/store` | SQLite schema and repositories | HTTP, inference |
 | `api/audio` | PCM validation, preprocessing, windows, clips, cleanup | Transcript meaning |
@@ -40,7 +41,7 @@ docs/ · tests/ · scripts/ · data/
 | `api/coach_routes` | Authenticated coach HTTP interfaces | Provider calls |
 | `api/agora_agent` | Agora join/leave adapter | Session authorization |
 | `api/agora_tokens` + commit-pinned official Rust token crate | Bounded AccessToken2 issuance | Public signing secrets |
-| `api/inference_workflow` | Background preparation, Modal execution, transactional result import | DOM, provider retry |
+| `api/inference_workflow` | Durable FIFO consumption, background preparation, Modal execution, transactional result import | DOM, provider retry |
 | `model/api` | Optional local gateway experiment | Canonical MVP orchestration |
 | `model/inference` | BuzzASR model loading and GPU inference only | Auth, annotation, persistence |
 | `model/modal` | Private Modal T4 lifecycle, bundle checks, pinned inference | Browser auth, persistence, pronunciation judgments |

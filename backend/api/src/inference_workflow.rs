@@ -10,13 +10,31 @@ use crate::{
 use axum::Json;
 use serde::Serialize;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tokio::sync::OwnedSemaphorePermit;
 
-pub async fn finish_session_in_background(
-    state: AppState,
-    session: CoachingSession,
-    _permit: OwnedSemaphorePermit,
-) {
+pub async fn run_inference_queue(state: AppState) {
+    loop {
+        let notified = state.inference_ready.notified();
+        tokio::pin!(notified);
+        notified.as_mut().enable();
+        let claim_store = state.store.clone();
+        match tokio::task::spawn_blocking(move || claim_store.claim_next_session_finalization())
+            .await
+        {
+            Ok(Ok(Some(session))) => finish_session_in_background(state.clone(), session).await,
+            Ok(Ok(None)) => notified.await,
+            Ok(Err(error)) => {
+                tracing::error!(event = "inference.queue.claim_failed", error = %error);
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            }
+            Err(error) => {
+                tracing::error!(event = "inference.queue.worker_failed", error = %error);
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+            }
+        }
+    }
+}
+
+pub async fn finish_session_in_background(state: AppState, session: CoachingSession) {
     let started = std::time::Instant::now();
     let outcome = prepare_and_run_inference(&state, &session).await;
     if let Err(error) = outcome {
@@ -36,6 +54,9 @@ pub async fn finish_session_in_background(
         tracing::warn!(event = "inference.background.failed", session_id = %session.id, error = %error);
     } else {
         tracing::info!(event = "inference.background.completed", session_id = %session.id, duration_ms = started.elapsed().as_millis() as u64);
+    }
+    if let Err(error) = state.store.complete_session_finalization(&session.id) {
+        tracing::error!(event = "inference.queue.complete_failed", session_id = %session.id, error = %error);
     }
 }
 

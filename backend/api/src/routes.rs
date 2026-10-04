@@ -22,7 +22,7 @@ use crate::{
     },
     coach_routes::create_coach_feedback,
     error::ApiError,
-    store::{AnnotationItem, CoachingSession, TranscriptEvent},
+    store::{AnnotationItem, CoachingSession, FinalizationEnqueue, TranscriptEvent},
 };
 
 const MAX_CHUNK_BYTES: usize = 2 * 1024 * 1024;
@@ -129,7 +129,11 @@ async fn bounded_admission(
     request: axum::extract::Request,
     next: axum::middleware::Next,
 ) -> Response {
-    let Ok(_permit) = state.admission.clone().try_acquire_owned() else {
+    let Ok(_permit) = state
+        .request_admission
+        .acquire(request.method(), request.uri().path())
+        .await
+    else {
         return ApiError::Busy.into_response();
     };
     next.run(request).await
@@ -371,25 +375,24 @@ async fn finalize_coaching_session(
     if !state.store.session_has_adult_consent(&id)? {
         return Err(ApiError::Forbidden);
     }
-    let permit = state
-        .background
-        .clone()
-        .try_acquire_owned()
-        .map_err(|_| ApiError::Busy)?;
-    if !state.store.claim_session_finalization(&id)? {
-        return Err(ApiError::Conflict(
-            "session finalization is already in progress".to_owned(),
-        ));
+    if state.store.enqueue_session_finalization(&id)? == FinalizationEnqueue::Existing {
+        let existing = state
+            .store
+            .coaching_session(&id)?
+            .ok_or(ApiError::NotFound)?;
+        return Ok(Json(FinalizeResponse {
+            session_id: id,
+            status: existing.status,
+            acknowledged: true,
+            idempotent: true,
+            review_items: 0,
+            inference_job_id: existing.inference_job_id,
+        }));
     }
-    let background_state = state.clone();
-    tokio::spawn(crate::inference_workflow::finish_session_in_background(
-        background_state,
-        session,
-        permit,
-    ));
+    state.inference_ready.notify_one();
     Ok(Json(FinalizeResponse {
         session_id: id,
-        status: "preprocessing".to_owned(),
+        status: "queued".to_owned(),
         acknowledged: true,
         idempotent: false,
         review_items: 0,

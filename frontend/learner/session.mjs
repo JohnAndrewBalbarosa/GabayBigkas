@@ -78,6 +78,7 @@ export class LearnerSession {
 export function renderSessionStatus(status) {
   const labels = {
     capturing: 'The recording session is still active.',
+    queued: 'The session is safely queued for private background analysis.',
     preprocessing: 'The backend is preparing the session audio.',
     review_ready: 'The evidence is ready for authorized human review.',
     pending_manual_inference: 'The backend received the audio and is running background analysis.',

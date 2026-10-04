@@ -209,6 +209,10 @@ test('LearnerSession finalizes once and always stops the microphone tracks first
   assert.ok(statuses.some(status => status.includes('backend')));
 });
 
+test('queued inference has a specific bounded-wait status message', () => {
+  assert.match(renderSessionStatus('queued'), /safely queued/i);
+});
+
 test('LearnerSession cancellation releases microphone tracks when recorder shutdown fails', async () => {
   const session = new LearnerSession({}, () => {});
   let stoppedTrack = false;

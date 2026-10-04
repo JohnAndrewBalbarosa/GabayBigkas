@@ -40,6 +40,8 @@ These items implement the planned contract in `SYSTEM.md`. None is complete unti
 
 ### P2 — Bounded priority scheduler
 
+Implemented baseline: fair bounded FIFO semaphores now isolate auth, write, read, and polling-read lanes; a 16-item SQLite FIFO feeds one Modal worker. The following priority/borrowing work remains unimplemented and must not be claimed:
+
 - [ ] Introduce explicit `express` and `durable` cost classes without binding either class to a physical vCPU.
 - [ ] Run Tokio with two async workers on the target VPS and rely on work stealing for idle-capacity sharing.
 - [ ] Reserve permits for express work while allowing unused permits to be borrowed by durable work.

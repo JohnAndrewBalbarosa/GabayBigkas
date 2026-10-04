@@ -12,7 +12,7 @@ use serde_json::{Value, json};
 
 use crate::{
     AppState, auth::LoginLimiter, config::Config, inference_bundle::InferenceBundleService,
-    modal_inference::ModalInferenceClient, store::Store,
+    modal_inference::ModalInferenceClient, request_admission::RequestAdmission, store::Store,
 };
 
 #[tokio::test]
@@ -56,10 +56,13 @@ async fn backend_mvp_http_flow_acknowledges_before_inference_and_keeps_results_p
         modal_inference: Some(ModalInferenceClient::for_test(modal_url)),
         coach_feedback: None,
         agora_agent: None,
-        admission: Arc::new(tokio::sync::Semaphore::new(8)),
-        background: Arc::new(tokio::sync::Semaphore::new(2)),
+        request_admission: RequestAdmission::bounded_default(),
+        inference_ready: Arc::new(tokio::sync::Notify::new()),
         store: store.clone(),
     };
+    let inference_task = tokio::spawn(crate::inference_workflow::run_inference_queue(
+        state.clone(),
+    ));
     let (api, api_task) = serve(crate::routes::router(state)).await;
     let client = Client::new();
     let unauth = client
@@ -107,7 +110,7 @@ async fn backend_mvp_http_flow_acknowledges_before_inference_and_keeps_results_p
     assert_eq!(ack.status(), StatusCode::OK);
     let ack: Value = ack.json().await.unwrap();
     assert_eq!(ack["acknowledged"], true);
-    assert_eq!(ack["status"], "preprocessing");
+    assert_eq!(ack["status"], "queued");
     let repeated: Value = client
         .post(&final_url)
         .header("origin", "https://frontend.example.test")
@@ -248,6 +251,7 @@ async fn backend_mvp_http_flow_acknowledges_before_inference_and_keeps_results_p
             .is_success()
     );
     api_task.abort();
+    inference_task.abort();
     modal_task.abort();
 }
 
