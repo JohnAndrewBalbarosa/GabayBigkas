@@ -61,6 +61,18 @@ export class LearnerSession {
     this.renderStatus(renderSessionStatus(result.status));
     return result;
   }
+
+  async cancel() {
+    if (!this.active) return;
+    const active = this.active;
+    this.active = null;
+    try {
+      await active.recorder.stop();
+    } finally {
+      stopStream(active.stream);
+    }
+    this.renderStatus('Itinigil ang recording at microphone access.');
+  }
 }
 
 export function renderSessionStatus(status) {

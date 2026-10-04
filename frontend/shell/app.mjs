@@ -93,6 +93,11 @@ function bindAuthentication() {
   document.querySelector('#logout').addEventListener('click', async event => {
     event.currentTarget.disabled = true;
     try {
+      try {
+        await learner.cancel();
+      } catch {
+        setLearnerStatus('Itinigil ang microphone; may pending audio upload na hindi nakumpleto.', true);
+      }
       await api.logout();
       clearAccount('Naka-log out ka na.');
     } catch (error) {

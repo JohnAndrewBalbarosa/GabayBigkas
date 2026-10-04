@@ -112,6 +112,19 @@ test('LearnerSession finalizes once and always stops the microphone tracks first
   assert.ok(statuses.some(status => status.includes('backend')));
 });
 
+test('LearnerSession cancellation releases microphone tracks when recorder shutdown fails', async () => {
+  const session = new LearnerSession({}, () => {});
+  let stoppedTrack = false;
+  session.active = {
+    stream: { getTracks: () => [{ stop: () => { stoppedTrack = true; } }] },
+    recorder: { stop: async () => { throw new Error('pending upload failed'); } },
+  };
+
+  await assert.rejects(() => session.cancel(), /pending upload failed/);
+  assert.equal(stoppedTrack, true);
+  assert.equal(session.active, null);
+});
+
 test('renderSessionStatus reflects backend-managed inference without deprecated browser controls', () => {
   assert.match(renderSessionStatus('pending_manual_inference'), /backend/i);
   assert.match(renderSessionStatus('review_ready'), /human review/i);
