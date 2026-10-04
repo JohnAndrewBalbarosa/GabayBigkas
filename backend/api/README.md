@@ -6,8 +6,7 @@ Default bind: `127.0.0.1:4320`. Runtime state stays under `.artifacts/` unless e
 
 ## MVP provider configuration
 
-- `AGORA_APP_ID` + `AGORA_APP_CERTIFICATE`: server-held signing inputs; generate fresh session-scoped tokens with existing official `agora-token@2.0.6`. No manually pasted `AGORA_CONVO_TOKEN` is required for this flow.
-- Node 24+ must be on the Rust host's PATH. `COACH_AGORA_TOKEN_SCRIPT` points to `adapters/agora-tokens.mjs`; use an absolute path when the service working directory differs from the repository root. Install production npm dependencies alongside the helper (`npm ci --omit=dev`).
+- `AGORA_APP_ID` + `AGORA_APP_CERTIFICATE`: server-held signing inputs; generate fresh session-scoped AccessToken2 credentials through the commit-pinned official Agora Rust implementation. No Node runtime or manually pasted `AGORA_CONVO_TOKEN` is required for this flow.
 - `YOUTUBE_API_KEY`: backend-only YouTube Data API v3 search key. A missing key disables feedback without breaking local authentication/audio flows.
 - `COACH_MODAL_ENABLED=true`, HTTPS inference URL and both Modal proxy credentials: private T4 transcription. Missing/failed inference produces an explicit failure, never a Colab fallback.
 - `/api/health` reports adapter configuration, not provider reachability or a successful paid inference.

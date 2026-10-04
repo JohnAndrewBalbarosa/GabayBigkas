@@ -16,7 +16,7 @@ needed.
 ## Native service contract
 
 - Install the release at `/opt/gabaybigkas/current/agora-coach-api`.
-- Install Node 24+ on the service PATH and the private token helper plus production npm dependencies under `/opt/gabaybigkas/current`; set `COACH_AGORA_TOKEN_SCRIPT=/opt/gabaybigkas/current/backend/api/adapters/agora-tokens.mjs`. This is a bounded signing adapter, not a Node HTTP server.
+- The product service mints Agora AccessToken2 credentials inside the Rust process through the pinned official Agora Rust implementation. The deployed backend does not require Node, npm dependencies, or a token-helper path.
 - Keep `AGORA_APP_ID`, `AGORA_APP_CERTIFICATE`, and `YOUTUBE_API_KEY` in the service secret file. Fresh RTC/RTM/agent tokens are generated per owned session; do not deploy a manually pasted expiring token as the primary flow.
 - Publish the verified coach build at `/var/lib/gabaybigkas/.artifacts/build/coach`; preserve its previous contents for rollback.
 - Store SQLite and private audio under `/var/lib/gabaybigkas`.

@@ -13,7 +13,6 @@ pub struct Config {
     pub modal_token_secret: Option<String>,
     pub agora_app_id: Option<String>,
     pub agora_app_certificate: Option<String>,
-    pub agora_token_script: String,
     pub agora_convo_token: Option<String>,
     pub youtube_api_key: Option<String>,
 }
@@ -42,8 +41,6 @@ impl Config {
             modal_token_secret: optional_env("COACH_MODAL_TOKEN_SECRET"),
             agora_app_id: optional_env("AGORA_APP_ID"),
             agora_app_certificate: optional_env("AGORA_APP_CERTIFICATE"),
-            agora_token_script: env::var("COACH_AGORA_TOKEN_SCRIPT")
-                .unwrap_or_else(|_| "backend/api/adapters/agora-tokens.mjs".to_owned()),
             agora_convo_token: optional_env("AGORA_CONVO_TOKEN"),
             youtube_api_key: optional_env("YOUTUBE_API_KEY"),
         }
@@ -63,7 +60,6 @@ impl Config {
             modal_token_secret: None,
             agora_app_id: None,
             agora_app_certificate: None,
-            agora_token_script: "backend/api/adapters/agora-tokens.mjs".to_owned(),
             agora_convo_token: None,
             youtube_api_key: None,
         }

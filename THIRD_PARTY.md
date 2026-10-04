@@ -4,7 +4,8 @@ Gumagamit ang lab ng official Agora packages at endpoint contracts. Node HTTP, f
 
 | Dependency | Pinned version | License | Gamit |
 | --- | --- | --- | --- |
-| agora-token | 2.0.6 | ISC | Official token generation |
+| agora-token | 2.0.6 | ISC | Node Agora lab token generation |
+| Agora Tools Rust token implementation | commit `da06bfb83556c597bfcb7db65fa65c975165a130` | MIT | Rust product-backend AccessToken2 generation; pinned Cargo git dependency |
 | agora-rtc-sdk-ng | 4.24.8 | MIT | Official browser RTC |
 | ajv | 8.20.0 | MIT | JSON Schema validation |
 | ajv-formats | 3.0.1 | MIT | Standard schema-format registration |
@@ -21,7 +22,7 @@ Official reference candidates reviewed:
 
 - [Agora Web examples](https://github.com/AgoraIO/API-Examples-Web): RTC feature reference; browser/App Certificate sample flow was not copied into this lab.
 - [Agora Next.js agent quickstart](https://github.com/AgoraIO-Conversational-AI/agent-quickstart-nextjs): closest full AI UI; useful for later specialized agent integration, but unnecessary framework weight for a multi-product request explorer.
-- [Agora token tools](https://github.com/AgoraIO/Tools): official token implementations; released npm package used directly.
+- [Agora token tools](https://github.com/AgoraIO/Tools): official token implementations; the Node lab uses the released npm package, while the Rust product backend pins the official Rust source at the commit above.
 - [Agora Chat UIKit](https://github.com/AgoraIO-Usecase/AgoraChat-UIKit-web), [Signaling samples](https://github.com/AgoraIO/signaling-sdk-samples-web), [Fastboard](https://github.com/netless-io/fastboard): linked specialized clients; not vendored or claimed locally verified.
 - [Community ConvoAI microservices](https://github.com/AgoraIO-Community/convo-ai-node-servers): narrower older AI-only example; not selected as the foundation.
 

@@ -16,7 +16,7 @@ Local-first guided English-learning MVP foundation gamit ang Agora RTC at review
 
 ## Local setup
 
-Prerequisites: Node.js 24+ at Rust 1.98+. Python, CUDA, at model dependencies ay kailangan lang sa private model development.
+Prerequisites: Node.js 24+ para sa frontend/lab tooling at Rust 1.98+ para sa product backend. Hindi kailangan ng Node sa deployed Rust service. Python, CUDA, at model dependencies ay kailangan lang sa private model development.
 
 ```powershell
 npm ci

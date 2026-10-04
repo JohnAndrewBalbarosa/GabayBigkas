@@ -39,7 +39,7 @@ docs/ · tests/ · scripts/ · data/
 | `api/coach_session` | Owned agent lifecycle, grounded request, feedback/result orchestration | HTTP parsing, provider transport |
 | `api/coach_routes` | Authenticated coach HTTP interfaces | Provider calls |
 | `api/agora_agent` | Agora join/leave adapter | Session authorization |
-| `api/agora_tokens` + `api/adapters/agora-tokens` | Bounded official token issuance | Public signing secrets |
+| `api/agora_tokens` + commit-pinned official Rust token crate | Bounded AccessToken2 issuance | Public signing secrets |
 | `api/inference_workflow` | Background preparation, Modal execution, transactional result import | DOM, provider retry |
 | `model/api` | Optional local gateway experiment | Canonical MVP orchestration |
 | `model/inference` | BuzzASR model loading and GPU inference only | Auth, annotation, persistence |
