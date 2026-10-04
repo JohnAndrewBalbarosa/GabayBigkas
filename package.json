@@ -16,7 +16,9 @@
     "test:e2e": "playwright test",
     "test:rust": "node scripts/rust-workspace.mjs test",
     "test:python": "python -m unittest discover -s tests/python",
-    "verify": "npm run check && npm test && npm run test:rust && npm run test:python && npm run test:e2e",
+    "verify": "npm run check && npm test && npm run test:rust && npm run test:python && npm run test:e2e && node scripts/pitch/refresh-slide-data.mjs --suite-passed",
+    "benchmark:learner": "node --env-file-if-exists=.env scripts/load/learner-stress.mjs",
+    "slides:refresh": "node scripts/pitch/refresh-slide-data.mjs",
     "contracts:refresh": "node scripts/import-contracts.mjs",
     "doctor": "node --env-file-if-exists=.env scripts/doctor.mjs",
     "package:event": "node scripts/package-event.mjs"

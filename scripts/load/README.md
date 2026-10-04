@@ -28,3 +28,17 @@ An iteration is **three reads**, not one completed learner coaching session. Sha
 Use [the cost worksheet](../../docs/SMALL_CASE_COST_BENCHMARK.md) for cost per successful read and cost per **completed learner session**. The read-only run measures API capacity; it cannot establish GPU inference cost, end-to-end session cost, priority-queue behavior, SSD spill, or OS swap benefits. Those need a separate consented end-to-end run and host instrumentation.
 
 Postman reference: [Performance Runner configuration](https://learning.postman.com/docs/tests-and-scripts/performance-testing/performance-test-configuration/).
+
+## Automatic HTML slide data
+
+`npm run verify` refreshes `.artifacts/pitch/gabaybigkas-semi-finals.html` **only after every check and test passes**. Verification records a source fingerprint; later changes label that result as a prior snapshot. The live throughput fields remain blank until a live learner-read benchmark produces samples. `npm run slides:refresh` regenerates the self-contained deck without asserting that tests passed.
+
+For the approved live test, set `LOAD_TEST_SESSION_ID` and `LOAD_TEST_SESSION_TOKEN` in the **local process environment or ignored `.env`**. The token must be the private value of a dedicated test learner's `coach_session` cookie; never put it in a command argument, chat, exported fixture, or slide. The session must belong to that learner. The local machine generates traffic against the actual VPS; the runner checks all three reads once before applying load. Then run:
+
+```powershell
+npm run benchmark:learner -- --live --base-url https://54.179.89.16
+```
+
+Without `--live`, `npm run benchmark:learner` previews the plan and sends zero requests. The Node runner uses the same three routes as Postman. It ramps through `1/10/25/50/100` VUs for at most 15 seconds of admission each (in-flight reads have a 4-second timeout), caps at 150 requests/s and 12,000 requests total including preflight, and stops on more than 10% errors or p95 above 2 seconds. Guards run periodically after 50 samples and at every stage end, including sparse stages. It never calls login, creates sessions, writes audio, or invokes providers. Its aggregate-only report is `.artifacts/benchmarks/learner-read-latest.json`; the generated HTML deck is `.artifacts/pitch/gabaybigkas-semi-finals.html`. A failed preflight sends only three reads, replaces previous benchmark evidence with a failed status, and does not start load stages. Stopped-stage samples remain visible as failures, with p95/p99, date, and generator commit. The generator commit does not prove the deployed VPS version. The checked-in HTML remains a template with explicit placeholders.
+
+The benchmark proves only the observed authenticated read workload. Fill host CPU/RSS, SQLite, network, actual Lightsail bill, real Spot quote, model bill, and completed-session count separately before claiming cost per completed session or queue/spill gains.
