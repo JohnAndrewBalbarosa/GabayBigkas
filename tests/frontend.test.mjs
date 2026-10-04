@@ -3,9 +3,14 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { float32ToPcm16 } from '../frontend/voice/capture/pcm.mjs';
 import { CoachApi } from '../frontend/transport/coach-api.mjs';
-import { normalizeLearnerFeedback, youtubeEmbedUrl } from '../frontend/learner/feedback.mjs';
+import {
+  normalizeLearnerFeedback,
+  normalizePracticeWords,
+  youtubeEmbedUrl,
+} from '../frontend/learner/feedback.mjs';
 import { LearnerSession, renderSessionStatus } from '../frontend/learner/session.mjs';
 import { attachCoachAudio } from '../frontend/learner/coach-audio.mjs';
+import { waitForAgentJoin } from '../frontend/learner/coach-handoff.mjs';
 
 test('PCM conversion clamps browser samples to signed 16-bit values', () => {
   const pcm = float32ToPcm16(new Float32Array([-2, -1, 0, 1, 2]));
@@ -29,6 +34,27 @@ test('learner feedback accepts the bounded Rust response shape', () => {
   assert.equal(feedback.practiceItems[0].resource.videoId, 'abcdefghijk');
   assert.equal(feedback.practiceItems[1].resource.videoId, '12345678901');
   assert.equal(youtubeEmbedUrl('abcdefghijk'), 'https://www.youtube-nocookie.com/embed/abcdefghijk');
+});
+
+test('learner preview accepts only bounded practice words', () => {
+  assert.deepEqual(normalizePracticeWords([' think ', 'fifty']), ['think', 'fifty']);
+  assert.deepEqual(normalizePracticeWords([{ word: 'unsafe' }]), []);
+  assert.deepEqual(normalizePracticeWords(['a', 'b', 'c', 'd', 'e', 'f']), []);
+});
+
+test('coach request waits for the owned agent to join the RTC channel', async () => {
+  let joined;
+  const calls = [];
+  const rtc = {
+    remoteUsers: [],
+    on: (event, listener) => { calls.push(['on', event]); joined = listener; },
+    off: (event, listener) => { calls.push(['off', event, listener === joined]); },
+  };
+  const ready = waitForAgentJoin(rtc, '1001');
+  joined({ uid: 999 });
+  joined({ uid: 1001 });
+  await ready;
+  assert.deepEqual(calls, [['on', 'user-joined'], ['off', 'user-joined', true]]);
 });
 
 test('one safe video remains attached to the first focus word', () => {

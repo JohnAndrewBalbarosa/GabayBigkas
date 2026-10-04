@@ -252,10 +252,10 @@ pub fn session_result(state: &AppState, session: CoachingSession) -> Result<Valu
     let feedback = state
         .store
         .completed_coach_feedback(&session.id)?
-        .map(|record| feedback_response(session.id.clone(), record, practice_words, true));
+        .map(|record| feedback_response(session.id.clone(), record, practice_words.clone(), true));
     let clips = state.store.session_annotation_items(&session.id)?;
     Ok(
-        json!({"session_id": session.id, "status": session.status, "transcription": transcription, "coach_feedback": feedback, "audio_items": clips}),
+        json!({"session_id": session.id, "status": session.status, "transcription": transcription, "practice_words": practice_words, "coach_feedback": feedback, "audio_items": clips}),
     )
 }
 

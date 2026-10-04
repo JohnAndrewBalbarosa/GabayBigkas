@@ -1,16 +1,7 @@
-import AgoraRTC from 'agora-rtc-sdk-ng';
-import AgoraRTM from 'agora-rtm';
 import { attachCoachAudio } from './coach-audio.mjs';
-import {
-  AgoraVoiceAI,
-  AgoraVoiceAIEvents,
-  ChatMessagePriority,
-  ChatMessageType,
-  TranscriptHelperMode,
-  TurnStatus,
-} from 'agora-agent-client-toolkit';
 
 const ASSISTANT_RESPONSE_TIMEOUT_MS = 60_000;
+const AGENT_JOIN_TIMEOUT_MS = 20_000;
 
 export class LearnerCoachHandoff {
   constructor(reportStage = () => {}) {
@@ -27,6 +18,7 @@ export class LearnerCoachHandoff {
   // subscribe to RTM, send the backend-owned request, then await one final reply.
   async requestCoachResponse(credentials) {
     validateCredentials(credentials);
+    const { AgoraRTC, AgoraRTM, toolkit } = await loadCoachSdks();
     this.reportStage('Connecting to the private coach channel…');
     this.rtc = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
     this.releaseAudio = attachCoachAudio(
@@ -44,23 +36,24 @@ export class LearnerCoachHandoff {
       credentials.rtc_token,
       Number(credentials.client_uid),
     );
+    await waitForAgentJoin(this.rtc, credentials.agent_uid);
 
     this.rtm = new AgoraRTM.RTM(credentials.app_id, credentials.client_uid);
     await this.rtm.login({ token: credentials.rtm_token });
-    this.voiceAi = await AgoraVoiceAI.init({
+    this.voiceAi = await toolkit.AgoraVoiceAI.init({
       rtcEngine: this.rtc,
       rtmEngine: this.rtm,
-      renderMode: TranscriptHelperMode.TEXT,
+      renderMode: toolkit.TranscriptHelperMode.TEXT,
       enableLog: false,
     });
 
     if (this.audioFailure) throw this.audioFailure;
-    this.waitingResponse = waitForAssistantResponse(this.voiceAi, credentials.agent_uid);
+    this.waitingResponse = waitForAssistantResponse(this.voiceAi, credentials.agent_uid, toolkit);
     this.voiceAi.subscribeMessage(credentials.channel);
     this.reportStage('The AI coach is preparing your feedback…');
     await this.voiceAi.sendText(credentials.agent_uid, {
-      messageType: ChatMessageType.TEXT,
-      priority: ChatMessagePriority.INTERRUPTED,
+      messageType: toolkit.ChatMessageType.TEXT,
+      priority: toolkit.ChatMessagePriority.INTERRUPTED,
       responseInterruptable: false,
       text: credentials.coach_request,
     });
@@ -85,7 +78,26 @@ export class LearnerCoachHandoff {
   }
 }
 
-function waitForAssistantResponse(voiceAi, agentUid) {
+export function waitForAgentJoin(rtc, agentUid) {
+  if (rtc.remoteUsers?.some(user => String(user.uid) === agentUid)) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    let timer;
+    const joined = (user) => {
+      if (String(user.uid) !== agentUid) return;
+      clearTimeout(timer);
+      rtc.off('user-joined', joined);
+      resolve();
+    };
+    timer = setTimeout(() => {
+      rtc.off('user-joined', joined);
+      reject(new Error('The AI coach did not join the private channel in time.'));
+    }, AGENT_JOIN_TIMEOUT_MS);
+    rtc.on('user-joined', joined);
+  });
+}
+
+function waitForAssistantResponse(voiceAi, agentUid, toolkit) {
+  const { AgoraVoiceAIEvents, TurnStatus } = toolkit;
   let timer;
   let playbackFallback;
   let transcriptHandler;
@@ -130,6 +142,15 @@ function waitForAssistantResponse(voiceAi, agentUid) {
     }),
     cancel: (reason = new Error('The AI coach connection was closed.')) => rejectResponse(reason),
   };
+}
+
+async function loadCoachSdks() {
+  const [{ default: AgoraRTC }, { default: AgoraRTM }, toolkit] = await Promise.all([
+    import('agora-rtc-sdk-ng'),
+    import('agora-rtm'),
+    import('agora-agent-client-toolkit'),
+  ]);
+  return { AgoraRTC, AgoraRTM, toolkit };
 }
 
 function validateCredentials(credentials) {

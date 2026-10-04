@@ -146,6 +146,7 @@ async fn backend_mvp_http_flow_acknowledges_before_inference_and_keeps_results_p
         "Fifty people think clearly."
     );
     assert!(result["coach_feedback"].is_null());
+    assert_eq!(result["practice_words"].as_array().unwrap().len(), 1);
     assert_eq!(result["audio_items"].as_array().unwrap().len(), 1);
     store.reserve_coach_agent(id).unwrap();
     store

@@ -38,6 +38,21 @@ export function renderLearnerFeedback(root, payload) {
   }
 }
 
+export function renderLearnerFeedbackPreview(root, words, detail) {
+  const normalizedWords = normalizePracticeWords(words);
+  const section = root.querySelector('#feedback-container');
+  const practice = root.querySelector('#practice-items');
+  section.hidden = false;
+  section.setAttribute('aria-busy', 'true');
+  root.querySelector('#feedback-loading').hidden = true;
+  root.querySelector('#feedback-content').hidden = false;
+  root.querySelector('#ai-coach-response').textContent = detail;
+  practice.replaceChildren(...normalizedWords.map(word => renderPracticeItem({ word, resource: null }, true)));
+  if (!normalizedWords.length) {
+    practice.textContent = 'No additional focus word was identified for this reading.';
+  }
+}
+
 export function renderLearnerFeedbackLoading(root, title, detail) {
   const section = root.querySelector('#feedback-container');
   section.hidden = false;
@@ -59,6 +74,12 @@ function normalizePracticeWord(item) {
   return isBoundedText(item, 80) ? item.trim() : null;
 }
 
+export function normalizePracticeWords(words) {
+  if (!Array.isArray(words) || words.length > 5) return [];
+  const normalized = words.map(normalizePracticeWord);
+  return normalized.includes(null) ? [] : normalized;
+}
+
 function normalizeYoutubeResource(item) {
   if (!isBoundedText(item?.title, 200) || !youtubeEmbedUrl(item?.video_id)) return null;
   return { title: item.title, videoId: item.video_id };
@@ -68,7 +89,7 @@ function isBoundedText(value, maximum) {
   return typeof value === 'string' && value.trim().length > 0 && value.length <= maximum;
 }
 
-function renderPracticeItem(item) {
+function renderPracticeItem(item, pending = false) {
   const container = document.createElement('article');
   container.className = 'practice-item-card';
   const heading = document.createElement('div');
@@ -81,7 +102,9 @@ function renderPracticeItem(item) {
   container.append(heading);
   if (!item.resource) {
     const unavailable = document.createElement('p');
-    unavailable.textContent = 'No safe video recommendation is available for this word.';
+    unavailable.textContent = pending
+      ? 'Finding a safe pronunciation video…'
+      : 'No safe video recommendation is available for this word.';
     container.append(unavailable);
     return container;
   }

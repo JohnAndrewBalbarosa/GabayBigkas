@@ -344,14 +344,31 @@ impl Store {
             status: "starting".to_owned(),
             expires_at: now() + 600,
         };
-        let inserted = transaction.execute(
-            "INSERT OR IGNORE INTO coach_agents(session_id,channel,agent_uid,client_uid,status,expires_at) VALUES(?1,?2,?3,?4,'starting',?5)",
-            params![session_id, binding.channel, binding.agent_uid, binding.client_uid, binding.expires_at],
-        )?;
-        if inserted == 0 {
-            return Err(ApiError::Conflict(
-                "coach agent already exists or is starting".to_owned(),
-            ));
+        let existing_status = transaction
+            .query_row(
+                "SELECT status FROM coach_agents WHERE session_id=?1",
+                [session_id],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()?;
+        match existing_status.as_deref() {
+            None => {
+                transaction.execute(
+                    "INSERT INTO coach_agents(session_id,channel,agent_uid,client_uid,status,expires_at) VALUES(?1,?2,?3,?4,'starting',?5)",
+                    params![session_id, binding.channel, binding.agent_uid, binding.client_uid, binding.expires_at],
+                )?;
+            }
+            Some(status) if is_terminal_coach_status(status) => {
+                transaction.execute(
+                    "UPDATE coach_agents SET agent_id=NULL,channel=?2,agent_uid=?3,client_uid=?4,status='starting',expires_at=?5 WHERE session_id=?1",
+                    params![session_id, binding.channel, binding.agent_uid, binding.client_uid, binding.expires_at],
+                )?;
+            }
+            Some(_) => {
+                return Err(ApiError::Conflict(
+                    "coach agent already exists or is starting".to_owned(),
+                ));
+            }
         }
         transaction.commit()?;
         Ok(binding)
@@ -988,6 +1005,11 @@ pub fn unix_now() -> i64 {
     now()
 }
 
+#[inline]
+fn is_terminal_coach_status(status: &str) -> bool {
+    matches!(status, "stopped" | "interrupted")
+}
+
 const SCHEMA: &str = r#"
 PRAGMA foreign_keys=ON;
 PRAGMA journal_mode=WAL;
@@ -1165,6 +1187,41 @@ mod tests {
 
         let chunks = store.audio_chunks(&session.id).unwrap();
         assert_eq!(chunks.len(), 1);
+    }
+
+    #[test]
+    fn stopped_coach_agent_can_be_reserved_again_without_reusing_its_channel() {
+        let directory = tempfile::tempdir().unwrap();
+        let store = Store::open(&directory.path().join("coach.sqlite3")).unwrap();
+        store
+            .seed_local_user("learner@example.test", "password12345", "learner")
+            .unwrap();
+        let learner = store
+            .find_local_user("learner@example.test")
+            .unwrap()
+            .unwrap();
+        let session = store
+            .create_coaching_session(&learner.id, "exercise", &["Prompt".to_owned()], true)
+            .unwrap();
+        store
+            .set_coaching_status(&session.id, "review_ready")
+            .unwrap();
+
+        let first = store.reserve_coach_agent(&session.id).unwrap();
+        store
+            .set_coach_agent_status(&session.id, Some("finished-agent"), "stopped")
+            .unwrap();
+        let second = store.reserve_coach_agent(&session.id).unwrap();
+
+        assert_ne!(first.channel, second.channel);
+        let stored = store.coach_agent(&session.id).unwrap().unwrap();
+        assert_eq!(stored.channel, second.channel);
+        assert_eq!(stored.status, "starting");
+        assert!(stored.agent_id.is_none());
+        assert!(matches!(
+            store.reserve_coach_agent(&session.id),
+            Err(ApiError::Conflict(_))
+        ));
     }
 
     #[test]

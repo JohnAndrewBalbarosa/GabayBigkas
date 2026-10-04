@@ -4,6 +4,7 @@ import {
   renderLearnerFeedback,
   renderLearnerFeedbackError,
   renderLearnerFeedbackLoading,
+  renderLearnerFeedbackPreview,
 } from '../learner/feedback.mjs';
 import { LearnerCoachHandoff } from '../learner/coach-handoff.mjs';
 import { renderAnnotationQueue, stopAnnotationAudio } from '../annotator/review.mjs';
@@ -11,7 +12,7 @@ import { renderAnnotationQueue, stopAnnotationAudio } from '../annotator/review.
 const RESULT_POLL_INTERVAL_MS = 2_000;
 const RESULT_POLL_ATTEMPTS = 45;
 const FEEDBACK_RETRY_INTERVAL_MS = 1_500;
-const FEEDBACK_ATTEMPTS = 4;
+const FEEDBACK_ATTEMPTS = 45;
 
 const api = new CoachApi(globalThis.GABAYBIGKAS_API_BASE_URL ?? '');
 const state = {
@@ -306,11 +307,12 @@ async function runLearnerFlow() {
       throw new Error(renderSessionStatus(result.status));
     }
 
-    renderLearnerFeedbackLoading(
+    renderLearnerFeedbackPreview(
       document,
-      'Preparing your AI practice guide…',
-      'The transcript is ready. A private, session-owned coach is connecting now.',
+      result.practice_words,
+      'Your word evidence is ready. The AI coach will connect after this review is visible.',
     );
+    await waitForNextPaint();
     const health = await api.health();
     if (flowEpoch !== state.flowEpoch) return;
     if (!health.agora_agent || !health.coach_feedback) {
@@ -322,14 +324,14 @@ async function runLearnerFlow() {
       return;
     }
     state.coachHandoff = new LearnerCoachHandoff((message) => {
-      renderLearnerFeedbackLoading(document, 'Preparing your AI practice guide…', message);
+      renderLearnerFeedbackPreview(document, result.practice_words, message);
     });
     await state.coachHandoff.requestCoachResponse(credentials);
     if (flowEpoch !== state.flowEpoch) return;
-    renderLearnerFeedbackLoading(
+    renderLearnerFeedbackPreview(
       document,
-      'Finding a focused practice video…',
-      'The coach note is ready. The backend is selecting a bounded YouTube recommendation.',
+      result.practice_words,
+      'The coach response is being validated before the video recommendation is shown.',
     );
     const feedback = await createFeedbackWithBoundedWait(sessionId);
     if (flowEpoch !== state.flowEpoch) return;
@@ -386,6 +388,10 @@ async function stopCoachFlow(sessionId = state.coachingSessionId) {
 
 function delay(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function waitForNextPaint() {
+  return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 }
 
 function renderBackendSession(session) {
