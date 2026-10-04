@@ -727,14 +727,14 @@
         <p class="eyebrow">Small-case economics · list-price illustration + live read evidence</p>
         <h2>Judge the VPS by <span class="accent">value at acceptable latency.</span></h2>
         <div class="cards">
-          <article class="card"><span class="phase">API host · list price</span><h3>$12 / month</h3><p>AWS Lightsail 2 vCPU, 2 GB RAM, 60 GB SSD. Confirm the actual instance bundle and bill.</p></article>
-          <article class="card"><span class="phase">Current model path · illustration</span><h3>$12.984 / month</h3><p>Host + Modal T4 GPU at 100 sessions × 60 billed seconds. Other provider and infrastructure costs excluded.</p></article>
-          <article class="card"><span class="phase">Future Spot path · hypothetical</span><h3>$14 / month</h3><p>Host + assumed $0.20/h Spot × 10 billed hours. Get a live Spot quote; add EBS, interruptions, and other costs.</p></article>
+          <article class="card"><span class="phase">Actual host · list price</span><h3>$5 / month</h3><p>AWS Lightsail: 512 MB RAM, 2 vCPU, 20 GB SSD, public IPv4. Confirm credits and the actual bill.</p></article>
+          <article class="card"><span class="phase">Current model path · illustration</span><h3>$5.984 / month</h3><p>$5 host + Modal T4 GPU at 100 sessions × 60 billed seconds. Other provider and infrastructure costs excluded.</p></article>
+          <article class="card"><span class="phase">Future Spot path · hypothetical</span><h3>$7 / month</h3><p>$5 host + assumed $0.20/h Spot × 10 billed hours. Get a live Spot quote; add EBS, interruptions, and other costs.</p></article>
         </div>
         <div class="benchmark-values evidence-list">
-          <div class="evidence-row"><span class="status-dot"></span><b>Full repo tests</b><span data-slide-field="suite">Awaiting full verification</span></div>
-          <div class="evidence-row"><span class="status-dot next"></span><b>Live learner reads</b><span><span data-slide-field="loadStatus">Awaiting live run</span> · <span data-slide-field="peakVus">—</span> VUs · <span data-slide-field="requests">—</span> requests · <span data-slide-field="rps">—</span> req/s · p95 <span data-slide-field="p95">—</span> · p99 <span data-slide-field="p99">—</span> · errors <span data-slide-field="errorRate">—</span></span></div>
-          <div class="evidence-row"><span class="status-dot next"></span><b>Run identity</b><span><span data-slide-field="runDate">No live benchmark yet</span> · commit <span data-slide-field="runCommit">—</span> · <span data-slide-field="runNote">Performance fields fill after an approved, authenticated live run.</span></span></div>
+          <div class="evidence-row"><span class="status-dot"></span><b>Full repo tests</b><span data-slide-field="suite">Verified snapshot 2026-10-04</span></div>
+          <div class="evidence-row"><span class="status-dot next"></span><b>Live learner reads</b><span><span data-slide-field="loadStatus">Measured live snapshot</span> · <span data-slide-field="peakVus">100</span> VUs · <span data-slide-field="requests">2,251</span> requests · <span data-slide-field="rps">144.3</span> req/s · p95 <span data-slide-field="p95">86 ms</span> · p99 <span data-slide-field="p99">101 ms</span> · errors <span data-slide-field="errorRate">0%</span></span></div>
+          <div class="evidence-row"><span class="status-dot next"></span><b>Run identity</b><span><span data-slide-field="runDate">2026-10-04</span> · <span data-slide-field="runCommit">generator d6233e7 (modified); VPS version unrecorded</span> · <span data-slide-field="runNote">Three learner GETs; cap 150 req/s; five stages passed.</span></span></div>
         </div>
       </div>
       <footer class="slide-foot"><span>Illustrations ≠ bill · Reads ≠ completed sessions · <a href="https://docs.aws.amazon.com/lightsail/latest/userguide/amazon-lightsail-bundles.html">AWS prices</a> · <a href="https://modal.com/pricing">Modal prices</a></span><span class="slide-time">Q&amp;A</span></footer>
@@ -743,18 +743,18 @@
     <section class="slide benchmark-slide" data-seconds="0" aria-label="Slide 16 of 16">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Appendix · VPS Stress Test</div></header>
       <div class="content">
-        <p class="eyebrow">Local load generator → actual VPS · authenticated learner reads</p>
+        <p class="eyebrow">Local generator → 512 MB Lightsail VPS · authenticated learner reads</p>
         <h2>Five load stages. <span class="accent">Measured results.</span></h2>
         <div class="benchmark-stages" aria-label="VPS benchmark stages">
-          <p class="benchmark-stage" data-slide-field="stage1">1 VU · Awaiting measured results</p>
-          <p class="benchmark-stage" data-slide-field="stage10">10 VUs · Awaiting measured results</p>
-          <p class="benchmark-stage" data-slide-field="stage25">25 VUs · Awaiting measured results</p>
-          <p class="benchmark-stage" data-slide-field="stage50">50 VUs · Awaiting measured results</p>
-          <p class="benchmark-stage" data-slide-field="stage100">100 VUs · Awaiting measured results</p>
+          <p class="benchmark-stage" data-slide-field="stage1">1 VU · 11.0 req/s · p95 93 ms · p99 111 ms · 0% errors</p>
+          <p class="benchmark-stage" data-slide-field="stage10">10 VUs · 113.6 req/s · p95 96 ms · p99 358 ms · 0% errors</p>
+          <p class="benchmark-stage" data-slide-field="stage25">25 VUs · 149.2 req/s · p95 89 ms · p99 188 ms · 0% errors</p>
+          <p class="benchmark-stage" data-slide-field="stage50">50 VUs · 147.4 req/s · p95 87 ms · p99 111 ms · 0% errors</p>
+          <p class="benchmark-stage" data-slide-field="stage100">100 VUs · 144.3 req/s · p95 86 ms · p99 101 ms · 0% errors</p>
         </div>
         <p class="micro"><strong>VUs = Virtual Users:</strong> mga sabay-sabay na simulated clients na paulit-ulit na nagpapadala ng read requests. Isang test learner at owned session ang shared fixture; hindi ito 100 distinct learner accounts.</p>
         <p class="micro"><strong>req/s:</strong> requests bawat segundo. <strong>p95 / p99:</strong> 95% / 99% ng requests ay natapos sa loob ng latency na ito. Bawat stage: 15 seconds of request admission; cap: 150 req/s.</p>
-        <p class="micro">Run: <span data-slide-field="runDate">No live benchmark yet</span> · <span data-slide-field="loadStatus">Awaiting live run</span>. Workload: auth session, owned coaching session, at owned result—tatlong GET routes.</p>
+        <p class="micro">Run: <span data-slide-field="runDate">2026-10-04</span> · <span data-slide-field="loadStatus">Measured live snapshot</span>. Workload: auth session, owned coaching session, at owned result—tatlong GET routes.</p>
       </div>
       <footer class="slide-foot"><span>Read capacity only · Completed coaching sessions require separate measurement</span><span class="slide-time">Q&amp;A</span></footer>
       <aside class="speaker-notes">VUs means concurrent simulated clients, not distinct learner identities. The generator ran locally against the actual VPS using one existing test learner and owned session. Each worker cycles through three authenticated GET routes. The five rows are measured stages, with the run date and status shown. Request throughput is capped at 150 req/s, so these results do not establish the VPS maximum capacity or complete coaching-session capacity. p95 and p99 describe observed request latency percentiles.</aside>

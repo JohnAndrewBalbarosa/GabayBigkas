@@ -15,6 +15,21 @@ function measuredDeck(extra = {}) {
   return template.replace('<!-- BENCHMARK_SLIDE_DATA -->', `<script>window.GABAYBIGKAS_SLIDE_DATA=${JSON.stringify(data).replaceAll('<', '\\u003c')}</script>`)
 }
 
+test('directly opened checked-in deck shows the dated VPS results without generation', async ({ page }) => {
+  await page.goto(`${new URL('../../docs/pitch/gabaybigkas-semi-finals.html', import.meta.url).href}#16`)
+  await expect(page.locator('.slide.active')).toHaveAttribute('aria-label', 'Slide 16 of 16')
+  for (const [field, expected] of Object.entries(measuredStages)) {
+    await expect(page.locator(`[data-slide-field="${field}"]`)).toHaveText(expected)
+  }
+  await expect(page.locator('.slide.active')).toContainText('2026-10-04')
+  await expect(page.locator('.slide.active')).toContainText('Measured live snapshot')
+  await expect(page.locator('.slide.active')).not.toContainText('Awaiting measured results')
+  await expect(page.locator('.slide.active')).toContainText('512 MB Lightsail VPS')
+  await page.keyboard.press('ArrowLeft')
+  await expect(page.locator('.slide.active')).toContainText('512 MB RAM')
+  await expect(page.locator('.slide.active .card h3')).toHaveText(['$5 / month', '$5.984 / month', '$7 / month'])
+})
+
 test('self-contained pitch deck navigates all slides and renders benchmark evidence safely', async ({ page }) => {
   const errors = []
   const requests = []
