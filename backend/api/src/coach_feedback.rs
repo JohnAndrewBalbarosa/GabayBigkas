@@ -32,21 +32,19 @@ pub struct GeneratedCoachFeedback {
 
 impl CoachFeedbackService {
     pub fn from_config(config: &Config) -> Result<Option<Self>, String> {
-        let Some(youtube_api_key) = &config.youtube_api_key else {
-            return Ok(None);
-        };
-        match (&config.agora_app_id, &config.agora_convo_token) {
-            (Some(app_id), Some(token)) => Self::new(
+        match (
+            &config.agora_app_id,
+            &config.agora_convo_token,
+            &config.youtube_api_key,
+        ) {
+            (Some(app_id), Some(token), Some(youtube_api_key)) => Self::new(
                 app_id.clone(),
                 token.clone(),
                 youtube_api_key.clone(),
                 "https://api.agora.io/api/conversational-ai-agent/v2/projects".to_owned(),
                 "https://www.googleapis.com/youtube/v3/search".to_owned(),
             ),
-            _ => Err(
-                "AGORA_APP_ID and AGORA_CONVO_TOKEN are required when YOUTUBE_API_KEY is set"
-                    .to_owned(),
-            ),
+            _ => Ok(None),
         }
     }
 
