@@ -474,7 +474,7 @@
 </head>
 <body>
   <main class="deck" aria-live="polite">
-    <section class="slide active" data-seconds="15" aria-label="Slide 1 of 10">
+    <section class="slide active" data-seconds="15" aria-label="Slide 1 of 13">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Agora Track · Voice First</div></header>
       <div class="content">
         <p class="eyebrow">Your voice, your guide.</p>
@@ -485,22 +485,22 @@
       <aside class="speaker-notes">Hook: “You know what you want to say. But when you are unsure of your pronunciation, hesitation often speaks first.” Then introduce GabayBigkas in one sentence.</aside>
     </section>
 
-    <section class="slide" data-seconds="25" aria-label="Slide 2 of 10">
+    <section class="slide" data-seconds="25" aria-label="Slide 2 of 13">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Problem · Education</div></header>
       <div class="content">
-        <p class="eyebrow">The pain point</p>
-        <h2>Every learner needs feedback.<br><span class="coral">A teacher cannot hear every attempt.</span></h2>
+        <p class="eyebrow">A national learning gap · a global economic stake</p>
+        <h2>English confidence is not just academic.<br><span class="coral">It shapes access to opportunity.</span></h2>
         <div class="cards">
-          <article class="card"><span class="index">01</span><h3>Limited attention</h3><p>In a large class, teachers cannot listen closely to every sentence from every learner.</p></article>
-          <article class="card"><span class="index">02</span><h3>Generic transcripts</h3><p>Ordinary ASR shows what it heard, but rarely turns uncertainty into a guided practice step.</p></article>
-          <article class="card"><span class="index">03</span><h3>Confidence gap</h3><p>When feedback is delayed or intimidating, learners get fewer chances to speak and try again.</p></article>
+          <article class="card"><span class="index">24%</span><h3>Minimum reading proficiency</h3><p>Only 24% of Filipino 15-year-olds reached PISA Level 2 or higher in reading, versus 74% across the OECD.</p></article>
+          <article class="card"><span class="index">1.82M</span><h3>IT-BPM professionals</h3><p>The sector expected 1.82 million workers by end-2024—careers built around clear, confident communication.</p></article>
+          <article class="card"><span class="index">$38B</span><h3>Global service engine</h3><p>IBPAP projected $38 billion in 2024 revenue and an 18% share of the global IT-BPM market.</p></article>
         </div>
       </div>
-      <footer class="slide-foot"><span>Target: guided English learners + educators</span><span class="slide-time">00:25</span></footer>
-      <aside class="speaker-notes">Target market: English learners in guided classroom or coaching sessions, and educators who need a focused review queue. Avoid unsupported market-size claims.</aside>
+      <footer class="slide-foot"><span>Sources: OECD PISA 2022 · IBPAP 2024 · DTI PEDP 2023–2028</span><span class="slide-time">00:25</span></footer>
+      <aside class="speaker-notes">Frame this as a skills-and-opportunity gap, not a claim that Filipinos broadly lack literacy. OECD reports that 24% of Filipino 15-year-olds reached Level 2 or higher in reading versus 74% across OECD countries. IBPAP projected 1.82 million workers, $38 billion revenue, and 18% global IT-BPM market share for 2024. The DTI Philippine Export Development Plan describes the country as having the largest number of call-center agents and the overall IT-BPM business as second-largest after India. Connect the evidence carefully: communication skills matter to a globally significant service economy, but these figures do not prove that pronunciation alone determines employability.</aside>
     </section>
 
-    <section class="slide" data-seconds="25" aria-label="Slide 3 of 10">
+    <section class="slide" data-seconds="25" aria-label="Slide 3 of 13">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">The Solution</div></header>
       <div class="content">
         <p class="eyebrow">Prompt → Speak → Compare → Guide → Retry</p>
@@ -517,7 +517,7 @@
       <aside class="speaker-notes">Walk through the five-step loop. In the learner experience, transcript disagreement is the operational signal used to deliver guidance immediately. The learner repeats the attempt until the two transcripts agree.</aside>
     </section>
 
-    <section class="slide" data-seconds="25" aria-label="Slide 4 of 10">
+    <section class="slide" data-seconds="25" aria-label="Slide 4 of 13">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Strategic Integration</div></header>
       <div class="content split">
         <div>
@@ -537,7 +537,7 @@
       <aside class="speaker-notes">Connect directly to the voice-first deduction rule. Agora is essential because the product starts with a live speaking interaction, not a form or text workflow.</aside>
     </section>
 
-    <section class="slide" data-seconds="50" aria-label="Slide 5 of 10">
+    <section class="slide" data-seconds="50" aria-label="Slide 5 of 13">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Live Demo</div></header>
       <div class="content">
         <p class="eyebrow">Show, don’t tell · drop screenshots here</p>
@@ -563,7 +563,7 @@
       <aside class="speaker-notes">Demo sequence: (1) let the AI coach present an institution-aligned prompt; (2) show the Agora voice session and captured transcript; (3) show the deterministic transcript difference, trusted pronunciation guide or YouTube resource, and the learner retry. Label any unimplemented screen as a prototype. Do not show credentials, tokens, channel IDs, or personal data.</aside>
     </section>
 
-    <section class="slide" data-seconds="35" aria-label="Slide 6 of 10">
+    <section class="slide" data-seconds="35" aria-label="Slide 6 of 13">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Technical Implementation</div></header>
       <div class="content">
         <p class="eyebrow">One voice session · two evidence paths</p>
@@ -573,14 +573,14 @@
           <div class="arrow" aria-hidden="true">→</div>
           <article class="system-node center"><h3>Deterministic workflow</h3><ul><li>Auth, roles, sessions</li><li>Audio preprocessing</li><li>Transcript parsing + diff</li><li>Guidance + retry state</li></ul></article>
           <div class="arrow" aria-hidden="true">→</div>
-          <article class="system-node"><h3>Second model</h3><ul><li>Rust model gateway</li><li>BuzzASR CUDA worker</li><li>Timestamped transcript</li><li>Filipino/Tagalog context</li></ul></article>
+          <article class="system-node"><h3>Private T4 inference</h3><ul><li>Modal serverless GPU</li><li>Pinned BuzzASR model</li><li>Timestamped transcript</li><li>Validated Rust import</li></ul></article>
         </div>
       </div>
       <footer class="slide-foot"><span>Local-first · Adapter boundaries · Secrets stay server-side</span><span class="slide-time">00:35</span></footer>
-      <aside class="speaker-notes">Highlight implementation depth: Axum API, SQLite, private filesystem audio, AudioWorklet capture, duration-preserving preprocessing, 30-second model windows with overlap, and a separate BuzzASR gateway. Describe BuzzASR as the selected Filipino/Tagalog-capable comparator; do not claim superior accuracy until benchmarks exist.</aside>
+      <aside class="speaker-notes">Highlight implementation depth: Axum API, SQLite, private filesystem audio, AudioWorklet capture, duration-preserving preprocessing, and private Modal T4 inference with a pinned BuzzASR revision. Describe BuzzASR as the selected Filipino/Tagalog-capable comparator; do not claim superior accuracy until benchmarks exist.</aside>
     </section>
 
-    <section class="slide" data-seconds="25" aria-label="Slide 7 of 10">
+    <section class="slide" data-seconds="25" aria-label="Slide 7 of 13">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Innovation + Judgment</div></header>
       <div class="content split">
         <div>
@@ -597,7 +597,7 @@
       <aside class="speaker-notes">Be precise about the confusion matrix. This weekly audit samples agreement cases, which are negative predictions. Human review can therefore classify each sample only as a true negative or false negative. A confirmed false negative triggers a learner notification and becomes labeled evidence for improving the models or comparison policy.</aside>
     </section>
 
-    <section class="slide" data-seconds="20" aria-label="Slide 8 of 10">
+    <section class="slide" data-seconds="20" aria-label="Slide 8 of 13">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">MVP Evidence</div></header>
       <div class="content split">
         <div>
@@ -605,16 +605,16 @@
           <h2>Built, tested, and honest about the <span class="accent">next gate.</span></h2>
         </div>
         <div class="evidence-list">
-          <div class="evidence-row"><span class="status-dot"></span><b>Implemented</b><span>Auth, sessions, PCM ingestion, comparison, annotation, cleanup</span></div>
-          <div class="evidence-row"><span class="status-dot"></span><b>Verified locally</b><span>Lint, contracts, builds, Rust/Node tests, browser E2E</span></div>
-          <div class="evidence-row"><span class="status-dot next"></span><b>Live-demo gate</b><span>AI coach flow, shared Agora track, transcript forwarding, guidance/retry, and weekly-audit operations</span></div>
+          <div class="evidence-row"><span class="status-dot"></span><b>Live T4 path</b><span>Rust background job → private Modal T4 → validated result import</span></div>
+          <div class="evidence-row"><span class="status-dot"></span><b>Verified foundation</b><span>Auth, capture, tests, browser E2E, comparison, annotation, cleanup</span></div>
+          <div class="evidence-row"><span class="status-dot next"></span><b>Next integration gate</b><span>Agora text-coach handoff, YouTube guidance, and full learner retry UX</span></div>
         </div>
       </div>
       <footer class="slide-foot"><span>No fabricated accuracy or live-provider claims</span><span class="slide-time">00:20</span></footer>
-      <aside class="speaker-notes">Say exactly what is working today. The repository has the product API, capture, comparison, annotation, model gateway, and Agora lab foundations. The complete AI-coach-to-retry flow still needs live end-to-end proof. If that gate is completed before pitching, replace the last row with captured evidence.</aside>
+      <aside class="speaker-notes">Say exactly what is working today. A live session reached the private T4, completed BuzzASR inference, returned to Rust, passed validation, and cleaned temporary audio. The Agora text-coach and YouTube guidance handoff remains the next integration gate; do not present it as complete until the UI drives the whole flow.</aside>
     </section>
 
-    <section class="slide" data-seconds="15" aria-label="Slide 9 of 10">
+    <section class="slide" data-seconds="15" aria-label="Slide 9 of 13">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Sustainability + Growth</div></header>
       <div class="content">
         <p class="eyebrow">Grow from one proven learning loop</p>
@@ -629,7 +629,7 @@
       <aside class="speaker-notes">Business path: validate with educators, measure whether focused review saves time and improves practice completion, then design institutional deployment and pricing from pilot evidence.</aside>
     </section>
 
-    <section class="slide" data-seconds="5" aria-label="Slide 10 of 10">
+    <section class="slide" data-seconds="5" aria-label="Slide 10 of 13">
       <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Thank You</div></header>
       <div class="content final-lockup">
         <p class="eyebrow">Listen. Practice. Speak.</p>
@@ -638,6 +638,55 @@
       </div>
       <footer class="slide-foot"><span>Demo URL / QR slot</span><span class="slide-time">04:00 total</span></footer>
       <aside class="speaker-notes">Close with the product promise, then stop. Move immediately to Q&amp;A.</aside>
+    </section>
+
+    <section class="slide" data-seconds="0" aria-label="Slide 11 of 13">
+      <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Appendix · Live Evidence</div></header>
+      <div class="content split">
+        <div>
+          <p class="eyebrow">Observed on the deployed system</p>
+          <h2>One private inference path, proven <span class="accent">end to end.</span></h2>
+          <p class="tagline">Latest observed run: approximately 32 seconds from Rust request to validated import. This is a runtime observation—not a benchmark claim.</p>
+        </div>
+        <div class="evidence-list">
+          <div class="evidence-row"><span class="status-dot"></span><b>1 · Submit</b><span>Finalize acknowledges quickly, then Rust owns the background job.</span></div>
+          <div class="evidence-row"><span class="status-dot"></span><b>2 · Infer</b><span>Modal starts one authenticated T4 task with the pinned BuzzASR model.</span></div>
+          <div class="evidence-row"><span class="status-dot"></span><b>3 · Import</b><span>Rust validates the response, persists evidence, and cleans temporary audio.</span></div>
+          <div class="evidence-row"><span class="status-dot next"></span><b>Next proof</b><span>Complete the Agora text-coach and YouTube learner-feedback handoff.</span></div>
+        </div>
+      </div>
+      <footer class="slide-foot"><span>Private endpoint · Server-held credentials · No browser GPU controls</span><span class="slide-time">Q&amp;A</span></footer>
+      <aside class="speaker-notes">Use this only when judges ask what is live. The observed production sequence was modal inference started, Modal model ready, inference completed, validated result imported, and temporary audio cleaned. Avoid treating one 32-second observation as a latency benchmark.</aside>
+    </section>
+
+    <section class="slide" data-seconds="0" aria-label="Slide 12 of 13">
+      <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Appendix · Trust by Design</div></header>
+      <div class="content">
+        <p class="eyebrow">Useful evidence without automated judgment</p>
+        <h2>The system identifies <span class="accent">where to look</span>—people decide what it means.</h2>
+        <div class="roadmap">
+          <article class="card"><span class="phase">Evidence boundary</span><h3>Disagreement is a signal</h3><p>Two transcripts disagreeing creates a review candidate, not an automatic pronunciation verdict.</p></article>
+          <article class="card"><span class="phase">Privacy boundary</span><h3>Audio stays bounded</h3><p>Consented session audio is private; temporary full-session files are removed after import or bounded failure.</p></article>
+          <article class="card"><span class="phase">Human boundary</span><h3>Review closes the loop</h3><p>Annotators can confirm, correct, mark insufficient evidence, or flag out-of-scope language.</p></article>
+        </div>
+      </div>
+      <footer class="slide-foot"><span>Reviewable · Privacy-bounded · Honest about model limits</span><span class="slide-time">Q&amp;A</span></footer>
+      <aside class="speaker-notes">Use this slide for safety, ethics, or accuracy questions. Emphasize that accent, noise, vocabulary, and code-switching can create transcript mismatches. The product supports practice and review; it does not diagnose a learner.</aside>
+    </section>
+
+    <section class="slide" data-seconds="0" aria-label="Slide 13 of 13">
+      <header class="slide-head"><div class="brand"><span class="brand-mark"></span>GabayBigkas</div><div class="track">Appendix · Pilot + Ask</div></header>
+      <div class="content">
+        <p class="eyebrow">Turn the MVP into measurable classroom value</p>
+        <h2>A focused pilot answers the questions that <span class="accent">matter to educators.</span></h2>
+        <div class="roadmap">
+          <article class="card"><span class="phase">Pilot partner</span><h3>Guided English programs</h3><p>Co-design fixed reading and speaking activities with teachers before expanding content.</p></article>
+          <article class="card"><span class="phase">Measure</span><h3>Practice + review outcomes</h3><p>Track completion, retry success, time to guidance, review workload, and sampled false negatives.</p></article>
+          <article class="card"><span class="phase">Our ask</span><h3>Access, feedback, validation</h3><p>We seek pilot classrooms, educator reviewers, and technical partners for responsible live validation.</p></article>
+        </div>
+      </div>
+      <footer class="slide-foot"><span>Measure first · Price from proven value · Scale with institutions</span><span class="slide-time">Q&amp;A</span></footer>
+      <aside class="speaker-notes">Use this slide for business-model or go-to-market questions. Do not invent pricing or market size. The immediate ask is access to a bounded pilot where educator time saved and learner practice completion can be measured.</aside>
     </section>
   </main>
 
