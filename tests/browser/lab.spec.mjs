@@ -15,7 +15,7 @@ test('explorer renders real catalog, validates requests, and never calls Agora o
   await page.locator('#operation').selectOption(query.value);
   await page.locator('#request').fill(JSON.stringify({ path: { appid: 'a'.repeat(32) }, query: {} }));
   await page.locator('#dry-run').click();
-  await expect(page.locator('#result-status')).toHaveText('LOCAL VALIDATION LANG');
+  await expect(page.locator('#result-status')).toHaveText('LOCAL VALIDATION ONLY');
   await expect(page.locator('#result')).toContainText('"networkCalled": false');
   await page.locator('#request').fill('{');
   await page.locator('#dry-run').click();
@@ -35,12 +35,12 @@ test('local camera preview works with fake browser media and token tools report 
   await page.getByRole('button', { name: 'Voice / video test', exact: true }).click();
   await page.locator('#media-mode').selectOption('video');
   await page.locator('#device-preview').click();
-  await expect(page.locator('#rtc-status')).toContainText('Local preview lang');
+  await expect(page.locator('#rtc-status')).toContainText('Local preview only');
   expect(await page.locator('#preview').evaluate(video => video.srcObject.getTracks().every(t => t.readyState === 'live'))).toBe(true);
   await page.locator('#device-stop').click();
   expect(await page.locator('#preview').evaluate(video => video.srcObject)).toBeNull();
   await page.locator('#rtc-join').click();
-  await expect(page.locator('#rtc-status')).toContainText('Kailangan ang live mode');
+  await expect(page.locator('#rtc-status')).toContainText('Live mode');
   await page.getByRole('button', { name: 'Token tools', exact: true }).click();
   await page.locator('#generate-token').click();
   await expect(page.locator('#token-result')).toContainText('I-enable muna ang live mode');
